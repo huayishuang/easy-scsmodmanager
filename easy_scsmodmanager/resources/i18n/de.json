@@ -1,0 +1,8 @@
+{
+  "app.title": "Easy SCSModManager",
+  "app.placeholder.scaffold": "Easy SCSModManager - nur Geruest. Phase 1 startet als naechstes.",
+  "menu.file": "&Datei",
+  "menu.file.quit": "&Beenden",
+  "menu.help": "&Hilfe",
+  "menu.help.about": "&Ueber"
+}
