@@ -13,9 +13,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from easy_scsmodmanager.core.game_paths import GameInstall
+from easy_scsmodmanager.core.game_paths import GAME_APP_ID, Game, GameInstall
 from easy_scsmodmanager.integrations.sii.crypto import decrypt_scsc, is_scsc
 from easy_scsmodmanager.integrations.sii.parser import SiiUnit, parse_sii
+from easy_scsmodmanager.integrations.steam.library_detector import find_steam_installs
 
 PROFILE_UNIT_CLASS = "user_profile"
 PROFILE_DIRECTORY_NAMES = ("profiles", "steam_profiles")
@@ -85,19 +86,62 @@ def read_profile(profile_sii_path: Path) -> Profile:
 
 
 def discover_profiles(install: GameInstall) -> list[Path]:
-    """Returns every profile.sii under the install's profile directories.
+    """Returns every profile.sii for the given install across all known locations.
 
-    Looks in both ``profiles/`` (local-only) and ``steam_profiles/``
-    (Steam Cloud mirror). Backup directories like ``steam_profiles(1.58.x).bak``
-    are excluded.
+    Sources:
+    * ``<documents>/profiles/`` - local-only profiles
+    * ``<documents>/steam_profiles/`` - Steam Cloud mirror inside the game folder
+    * ``<steam>/userdata/<user>/<appid>/remote/profiles/`` and
+      ``.../remote/steam_profiles/`` - Steam Cloud user-data root (the actual
+      authoritative copy that Steam syncs)
+
+    Backup directories like ``steam_profiles(1.58.x).bak`` are excluded.
+    A profile that appears under multiple roots (e.g. mirrored Cloud copy) is
+    only returned once, keyed by its hex directory name.
     """
+    seen: set[str] = set()
     results: list[Path] = []
-    for sub in PROFILE_DIRECTORY_NAMES:
-        parent = install.documents_dir / sub
+
+    for parent in _candidate_profile_parents(install):
         if not parent.is_dir():
             continue
         for profile_dir in sorted(p for p in parent.iterdir() if p.is_dir()):
             sii = profile_dir / PROFILE_FILE_NAME
-            if sii.is_file():
-                results.append(sii)
+            if not sii.is_file():
+                continue
+            if profile_dir.name in seen:
+                continue
+            seen.add(profile_dir.name)
+            results.append(sii)
+
+    return results
+
+
+def _candidate_profile_parents(install: GameInstall) -> list[Path]:
+    """Build the search list of parent directories that may contain profile dirs."""
+    parents: list[Path] = [install.documents_dir / sub for sub in PROFILE_DIRECTORY_NAMES]
+    parents.extend(steam_userdata_profile_dirs(install.game))
+    return parents
+
+
+def steam_userdata_profile_dirs(game: Game) -> list[Path]:
+    """Return every Steam Cloud user-data profile parent directory for the game.
+
+    Layout: ``<steam install>/userdata/<user-id>/<app-id>/remote/{profiles,steam_profiles}/``.
+    Discovers all Steam installs via the library detector, then walks each
+    userdata user-id subdirectory. The user-id is a Steam-numeric id; we
+    accept any all-digit directory name.
+    """
+    app_id = str(GAME_APP_ID[game])
+    results: list[Path] = []
+    for steam in find_steam_installs():
+        userdata = steam / "userdata"
+        if not userdata.is_dir():
+            continue
+        for user_dir in sorted(p for p in userdata.iterdir() if p.is_dir() and p.name.isdigit()):
+            remote = user_dir / app_id / "remote"
+            for sub in PROFILE_DIRECTORY_NAMES:
+                candidate = remote / sub
+                if candidate.is_dir():
+                    results.append(candidate)
     return results

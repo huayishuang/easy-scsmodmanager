@@ -190,6 +190,15 @@ def _install(tmp_path: Path) -> GameInstall:
     )
 
 
+@pytest.fixture(autouse=True)
+def _no_real_steam_installs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Discover-tests must not touch the real machine's Steam userdata dir."""
+    monkeypatch.setattr(
+        "easy_scsmodmanager.services.profile_reader.find_steam_installs",
+        lambda: [],
+    )
+
+
 def test_discover_profiles_finds_local_profiles(tmp_path: Path) -> None:
     p = tmp_path / "profiles" / "436970"
     p.mkdir(parents=True)
@@ -237,5 +246,67 @@ def test_discover_profiles_ignores_backup_dirs(tmp_path: Path) -> None:
 
 def test_discover_profiles_skips_dirs_without_profile_sii(tmp_path: Path) -> None:
     (tmp_path / "profiles" / "no-file").mkdir(parents=True)
+
+    assert discover_profiles(_install(tmp_path)) == []
+
+
+def test_discover_profiles_picks_up_steam_cloud_userdata(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Fake a Steam install whose userdata tree contains a remote profile dir.
+    steam = tmp_path / "steam_install"
+    cloud_profiles = steam / "userdata" / "12345" / "227300" / "remote" / "profiles"
+    cloud_profile_dir = cloud_profiles / "DEADBEEF"
+    cloud_profile_dir.mkdir(parents=True)
+    (cloud_profile_dir / "profile.sii").write_text("x")
+
+    monkeypatch.setattr(
+        "easy_scsmodmanager.services.profile_reader.find_steam_installs",
+        lambda: [steam],
+    )
+
+    paths = discover_profiles(_install(tmp_path))
+
+    assert cloud_profile_dir / "profile.sii" in paths
+
+
+def test_discover_profiles_deduplicates_same_profile_across_locations(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Profile DEADBEEF exists in both documents/steam_profiles/ and the
+    # Steam userdata mirror. Should only appear once.
+    docs_dir = tmp_path / "docs" / "steam_profiles" / "DEADBEEF"
+    docs_dir.mkdir(parents=True)
+    (docs_dir / "profile.sii").write_text("x")
+
+    steam = tmp_path / "steam_install"
+    cloud_dir = steam / "userdata" / "12345" / "227300" / "remote" / "profiles" / "DEADBEEF"
+    cloud_dir.mkdir(parents=True)
+    (cloud_dir / "profile.sii").write_text("x")
+
+    install = GameInstall(
+        game=Game.ETS2,
+        kind=InstallKind.LINUX_NATIVE,
+        documents_dir=tmp_path / "docs",
+        workshop_dir=None,
+    )
+    monkeypatch.setattr(
+        "easy_scsmodmanager.services.profile_reader.find_steam_installs",
+        lambda: [steam],
+    )
+
+    paths = discover_profiles(install)
+
+    dir_names = [p.parent.name for p in paths]
+    assert dir_names.count("DEADBEEF") == 1
+
+
+def test_discover_profiles_handles_missing_userdata_gracefully(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        "easy_scsmodmanager.services.profile_reader.find_steam_installs",
+        lambda: [],
+    )
 
     assert discover_profiles(_install(tmp_path)) == []
