@@ -9,11 +9,11 @@ import pytest
 
 pytest.importorskip("pytestqt")
 
-from easy_scsmodmanager.ui.main_window import MainWindow
+from easy_scsmodmanager.ui.main_window import MainWindow  # noqa: E402
 
 
 def test_main_window_constructs(qtbot) -> None:
-    window = MainWindow()
+    window = MainWindow(auto_scan=False)
     qtbot.addWidget(window)
     assert window.windowTitle().startswith("Easy SCSModManager")
     assert window.minimumWidth() >= 1000

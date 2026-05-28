@@ -1,0 +1,166 @@
+"""Top-of-browser toolbar with search, sort and category filters."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+from enum import Enum
+from typing import Any
+
+from PyQt6.QtCore import QTimer, pyqtSignal
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QWidget,
+)
+
+from easy_scsmodmanager.ui.theme import Theme
+from easy_scsmodmanager.utils.i18n import t
+
+SEARCH_DEBOUNCE_MS = 200
+
+
+class SortKey(Enum):
+    DATE = "date"
+    NAME = "name"
+    AUTHOR = "author"
+    STATUS = "status"
+
+
+@dataclass(frozen=True)
+class FilterState:
+    search: str = ""
+    workshop_only: bool = False
+    favorites_only: bool = False
+    sort_key: SortKey = SortKey.NAME
+    sort_descending: bool = False
+    category: str | None = None  # None = all categories
+
+
+class FilterToolbar(QWidget):
+    filter_changed = pyqtSignal(object)  # FilterState
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._state = FilterState()
+        self._debounce = QTimer(self)
+        self._debounce.setSingleShot(True)
+        self._debounce.setInterval(SEARCH_DEBOUNCE_MS)
+        self._debounce.timeout.connect(self._emit_filter)
+
+        self.setStyleSheet(
+            f"""
+            QLineEdit, QComboBox {{
+                background-color: {Theme.SURFACE};
+                color: {Theme.TEXT};
+                border: 1px solid {Theme.SURFACE_HOVER};
+                border-radius: 3px;
+                padding: 4px 6px;
+            }}
+            QCheckBox {{
+                color: {Theme.TEXT};
+            }}
+            QLabel {{
+                color: {Theme.TEXT_DIM};
+            }}
+            """
+        )
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(6)
+
+        self._search = QLineEdit()
+        self._search.setPlaceholderText(t("filter.search.placeholder"))
+        self._search.setClearButtonEnabled(True)
+        self._search.textChanged.connect(self._on_search_changed)
+        row.addWidget(self._search, 2)
+
+        self._workshop = QCheckBox(t("filter.workshop_only"))
+        self._workshop.toggled.connect(self._on_workshop_toggled)
+        row.addWidget(self._workshop)
+
+        self._favorites = QCheckBox(t("filter.favorites_only"))
+        self._favorites.toggled.connect(self._on_favorites_toggled)
+        row.addWidget(self._favorites)
+
+        row.addWidget(QLabel(t("filter.sort.label")))
+        self._sort = QComboBox()
+        for key in SortKey:
+            self._sort.addItem(t(f"filter.sort.{key.value}"), key)
+        self._sort.currentIndexChanged.connect(self._on_sort_changed)
+        row.addWidget(self._sort)
+
+        self._sort_dir = QComboBox()
+        self._sort_dir.addItem(t("filter.sort.asc"), False)
+        self._sort_dir.addItem(t("filter.sort.desc"), True)
+        self._sort_dir.currentIndexChanged.connect(self._on_sort_dir_changed)
+        row.addWidget(self._sort_dir)
+
+        row.addWidget(QLabel(t("filter.category.label")))
+        self._category = QComboBox()
+        self._category.addItem(t("filter.category.all"), None)
+        self._category.currentIndexChanged.connect(self._on_category_changed)
+        row.addWidget(self._category, 1)
+
+    # ------------------------------------------------------------------ #
+    # public API
+    # ------------------------------------------------------------------ #
+
+    @property
+    def state(self) -> FilterState:
+        return self._state
+
+    def set_categories(self, categories: list[str]) -> None:
+        """Replace the category dropdown options. Always keeps 'All'."""
+        previous = self._state.category
+        self._category.blockSignals(True)
+        self._category.clear()
+        self._category.addItem(t("filter.category.all"), None)
+        for category in sorted(set(categories)):
+            self._category.addItem(category, category)
+        # restore previous if still present
+        if previous is not None:
+            idx = self._category.findData(previous)
+            self._category.setCurrentIndex(max(idx, 0))
+        self._category.blockSignals(False)
+
+    # ------------------------------------------------------------------ #
+    # internals
+    # ------------------------------------------------------------------ #
+
+    def _on_search_changed(self, text: str) -> None:
+        self._state = self._replace(search=text)
+        self._debounce.start()
+
+    def _on_workshop_toggled(self, checked: bool) -> None:
+        self._state = self._replace(workshop_only=checked)
+        self._emit_filter()
+
+    def _on_favorites_toggled(self, checked: bool) -> None:
+        self._state = self._replace(favorites_only=checked)
+        self._emit_filter()
+
+    def _on_sort_changed(self, _index: int) -> None:
+        key = self._sort.currentData()
+        if key is not None:
+            self._state = self._replace(sort_key=key)
+            self._emit_filter()
+
+    def _on_sort_dir_changed(self, _index: int) -> None:
+        desc = bool(self._sort_dir.currentData())
+        self._state = self._replace(sort_descending=desc)
+        self._emit_filter()
+
+    def _on_category_changed(self, _index: int) -> None:
+        cat = self._category.currentData()
+        self._state = self._replace(category=cat)
+        self._emit_filter()
+
+    def _replace(self, **changes: Any) -> FilterState:
+        return replace(self._state, **changes)
+
+    def _emit_filter(self) -> None:
+        self.filter_changed.emit(self._state)

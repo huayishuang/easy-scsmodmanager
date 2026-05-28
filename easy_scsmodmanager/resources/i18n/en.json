@@ -1,8 +1,73 @@
 {
   "app.title": "Easy SCSModManager",
-  "app.placeholder.scaffold": "Easy SCSModManager - scaffold only. Phase 1 starts next.",
+  "app.placeholder.scaffold": "Easy SCSModManager - skeleton only. Phase 1 starts next.",
+
   "menu.file": "&File",
+  "menu.file.refresh": "&Refresh scan",
+  "menu.file.clear_cache": "&Clear scan cache",
   "menu.file.quit": "&Quit",
+  "menu.profile": "&Profile",
+  "menu.profile.switch": "&Switch profile...",
+  "menu.profile.open_folder": "Open profile folder",
+  "menu.tools": "&Tools",
+  "menu.tools.game_log": "Open &game log",
+  "menu.tools.scs_browser": "Browse SCS contents...",
   "menu.help": "&Help",
-  "menu.help.about": "&About"
+  "menu.help.about": "&About",
+  "menu.help.report_issue": "Report an issue (GitHub)",
+
+  "filter.search.placeholder": "Search mods by name, author, category...",
+  "filter.workshop_only": "Workshop only",
+  "filter.favorites_only": "Favorites only",
+  "filter.sort.label": "Sort by",
+  "filter.sort.date": "Date installed",
+  "filter.sort.name": "Name",
+  "filter.sort.author": "Author",
+  "filter.sort.status": "Status",
+  "filter.sort.asc": "ascending",
+  "filter.sort.desc": "descending",
+  "filter.category.label": "Category",
+  "filter.category.all": "All categories",
+  "filter.help": "Help",
+
+  "status.active": "Active",
+  "status.inactive": "Inactive",
+  "status.incompatible": "Incompatible",
+  "status.error": "Container error",
+  "status.encrypted": "Encrypted",
+  "status.hashfs_no_reader": "HashFS reader unavailable",
+
+  "mod_card.no_author": "Unknown author",
+  "mod_card.no_category": "Other",
+  "mod_card.favorite_tooltip": "Toggle favorite",
+  "mod_card.info_tooltip": "Show mod details",
+
+  "active_panel.title": "Active mods",
+  "active_panel.empty": "No active mods. Drag mods from the left to enable.",
+  "active_panel.count": "{count} active",
+  "active_panel.priority_up": "Move up",
+  "active_panel.priority_down": "Move down",
+  "active_panel.priority_top": "Move to top",
+  "active_panel.priority_bottom": "Move to bottom",
+
+  "profile_header.no_profile": "(no profile loaded)",
+  "profile_header.level": "Level {level}",
+  "profile_header.switch_profile": "Switch profile",
+
+  "control_strip.add_all_tooltip": "Activate all installed mods",
+  "control_strip.add_selected_tooltip": "Activate selected mods",
+  "control_strip.remove_selected_tooltip": "Deactivate selected mods",
+  "control_strip.remove_all_tooltip": "Deactivate all mods",
+
+  "status_bar.scanning": "Scanning mods in {path}...",
+  "status_bar.scan_done": "{total} mods loaded ({active} active, {errors} errors) in {elapsed:.1f}s",
+  "status_bar.no_install": "No game install detected. Check Settings.",
+  "status_bar.selection": "{count} selected",
+
+  "main_window.confirm_changes": "Apply changes",
+  "main_window.discard_changes": "Discard changes",
+  "main_window.unsaved_changes": "You have unsaved mod-list changes. Apply or discard them first.",
+
+  "dialog.about.title": "About Easy SCSModManager",
+  "dialog.about.body": "Cross-platform mod and profile manager for ETS2 and ATS.\nVersion {version}\nGPL-3.0-or-later"
 }

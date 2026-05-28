@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 
 def _detect_language() -> str:
-    env = os.environ.get("ESCSMM_LANG") or os.environ.get("LANG", "")
+    env = os.environ.get("ESCSMM_LANG") or os.environ.get("LANG") or ""
     code = env.split(".")[0].split("_")[0].lower()
     if code in SUPPORTED_LANGS:
         return code

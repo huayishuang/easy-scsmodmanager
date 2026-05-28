@@ -19,7 +19,7 @@ def run(argv: list[str]) -> int:
     app.setApplicationName(__app_name__)
     app.setOrganizationName("Switch-Bros")
 
-    window = MainWindow()
+    window = MainWindow(auto_scan=True)
     window.show()
     return app.exec()
 
