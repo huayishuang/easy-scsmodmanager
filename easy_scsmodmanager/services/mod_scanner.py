@@ -33,10 +33,12 @@ from easy_scsmodmanager.integrations.scs.hashfs_extractor import (
     is_available as hashfs_extractor_available,
 )
 from easy_scsmodmanager.integrations.scs.manifest_bundle import (
+    ManifestBundle,
     MissingManifest,
     read_bundle,
 )
 from easy_scsmodmanager.integrations.scs.mod_source import DirectoryModSource
+from easy_scsmodmanager.integrations.scs.raw_zip_reader import RawZipReader
 from easy_scsmodmanager.integrations.scs.workshop_versions import (
     is_helper_slot_name,
     pick_active_slot,
@@ -259,16 +261,42 @@ def _scan_zip(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None,
         with ZipScsReader(scs_path) as reader:
             bundle = read_bundle(reader)
     except MissingManifest:
+        return _recover_fake_locked_zip(scs_path, fmt, f"missing {MANIFEST_ENTRY}")
+    except Exception as exc:
+        log.debug("failed to read manifest from %s: %s", scs_path, exc)
+        return _recover_fake_locked_zip(scs_path, fmt, str(exc))
+    return _zip_bundle_result(scs_path, fmt, bundle)
+
+
+def _recover_fake_locked_zip(
+    scs_path: Path, fmt: ScsFormat, prior_error: str
+) -> tuple[ScannedMod, bytes | None, str | None]:
+    """Second pass for zips stdlib refused.
+
+    Most "encrypted" / manifest-missing map mods are just fake-locked deflate:
+    the encryption bit is set and the method label is bogus, but the payload is
+    plain. RawZipReader scans the local headers and inflates directly, so we get
+    the real manifest (and the icon it names). Only if that also fails do we
+    fall back to scavenging a bare preview image.
+    """
+    try:
+        with RawZipReader(scs_path) as raw:
+            bundle = read_bundle(raw)
+    except MissingManifest:
         return (
             _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"),
             _scavenge_zip_icon(scs_path),
             None,
         )
     except Exception as exc:
-        log.debug("failed to read manifest from %s: %s", scs_path, exc)
-        # When manifest.sii itself is encrypted (ZipCrypto on map mods)
-        # we still try to pull out the unencrypted preview image.
-        return _error_mod(scs_path, fmt, str(exc)), _scavenge_zip_icon(scs_path), None
+        log.debug("raw-zip recovery failed for %s: %s", scs_path, exc)
+        return _error_mod(scs_path, fmt, prior_error), _scavenge_zip_icon(scs_path), None
+    return _zip_bundle_result(scs_path, fmt, bundle)
+
+
+def _zip_bundle_result(
+    scs_path: Path, fmt: ScsFormat, bundle: ManifestBundle
+) -> tuple[ScannedMod, bytes | None, str | None]:
     return (
         ScannedMod(
             path=scs_path,

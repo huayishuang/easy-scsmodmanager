@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import struct
 import zipfile
 from pathlib import Path
 
@@ -77,6 +78,39 @@ def test_scan_mod_directory_parses_zip_with_manifest(tmp_path: Path) -> None:
     assert mods[0].manifest.display_name == "Mod Alpha"
     assert mods[0].manifest.author == "Alice"
     assert mods[0].manifest.categories == ("sound",)
+
+
+def _mangle_fake_lock(path: Path) -> Path:
+    # flip the central encryption bit + relabel local method as 1, like the
+    # "protected" map mods do, leaving the deflate payload untouched
+    raw = bytearray(path.read_bytes())
+    pos = 0
+    while (i := raw.find(b"PK\x03\x04", pos)) != -1:
+        struct.pack_into("<H", raw, i + 8, 1)
+        pos = i + 4
+    pos = 0
+    while (i := raw.find(b"PK\x01\x02", pos)) != -1:
+        raw[i + 8] |= 0x01
+        pos = i + 4
+    path.write_bytes(bytes(raw))
+    return path
+
+
+def test_scan_mod_directory_recovers_fake_locked_zip(tmp_path: Path) -> None:
+    scs = tmp_path / "locked_map.scs"
+    with zipfile.ZipFile(scs, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("manifest.sii", _full_manifest("Locked Map", "Mapper"))
+        zf.writestr("icon.jpg", b"\xff\xd8\xfffake\xff\xd9")
+    _mangle_fake_lock(scs)
+
+    mods = scan_mod_directory(tmp_path)
+
+    assert len(mods) == 1
+    assert mods[0].format == ScsFormat.ZIP
+    assert mods[0].error is None
+    assert mods[0].manifest is not None
+    assert mods[0].manifest.display_name == "Locked Map"
+    assert mods[0].manifest.author == "Mapper"
 
 
 def test_scan_mod_directory_zip_without_manifest_marks_error(tmp_path: Path) -> None:
