@@ -60,12 +60,15 @@ def test_status_for_inactive_mod_with_manifest_is_inactive(qtbot: QtBot) -> None
 
 
 def test_status_for_error_mod_is_error(qtbot: QtBot) -> None:
+    # An "error" mod (e.g. encrypted manifest) is still installed and
+    # works in-game; we only mean "metadata not parseable". Render with
+    # the muted colour, not the incompatible/danger red.
     mod = _scanned(manifest=None, error="missing manifest")
     card = ModCard(mod)
     qtbot.addWidget(card)
 
     assert card._status_kind() == "error"
-    assert Theme.DANGER in card._status_indicator.styleSheet()
+    assert Theme.MUTED in card._status_indicator.styleSheet()
 
 
 def test_set_active_updates_status_indicator(qtbot: QtBot) -> None:

@@ -243,11 +243,18 @@ class ModCard(QFrame):
         return "inactive"
 
     def _status_label(self) -> str:
+        kind = self._status_kind()
+        if kind == "error":
+            err = (self._mod.error or "").lower()
+            if "encrypted" in err or "password" in err:
+                return t("status.encrypted")
+            if "hashfs" in err and "not implemented" in err:
+                return t("status.hashfs_no_reader")
+            return t("status.error")
         return {
             "active": t("status.active"),
             "inactive": t("status.inactive"),
-            "error": t("status.error"),
-        }.get(self._status_kind(), t("status.inactive"))
+        }.get(kind, t("status.inactive"))
 
     def _display_name(self) -> str:
         if self._mod.manifest is not None and self._mod.manifest.display_name:

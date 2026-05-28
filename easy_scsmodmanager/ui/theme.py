@@ -50,5 +50,10 @@ class Theme:
             "active": cls.SUCCESS,
             "inactive": cls.MUTED,
             "incompatible": cls.DANGER,
-            "error": cls.DANGER,
+            # Error here means "container readable but metadata not
+            # accessible" (typically ZipCrypto-protected manifest in map
+            # mods). The mod itself works in-game. Render as muted with
+            # an orange warning hint so users do not mistake it for
+            # a broken or incompatible mod.
+            "error": cls.MUTED,
         }.get(status, cls.MUTED)
