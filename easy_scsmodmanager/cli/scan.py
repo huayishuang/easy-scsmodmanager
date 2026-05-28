@@ -13,6 +13,7 @@ import sys
 from collections.abc import Iterable
 from pathlib import Path
 
+from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.game_paths import Game, detect_game_installs
 from easy_scsmodmanager.services.mod_scanner import ScannedMod, scan_game_install
 from easy_scsmodmanager.services.profile_reader import (
@@ -45,6 +46,16 @@ def add_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParse
         action="store_true",
         help="only print the available profiles and exit",
     )
+    p.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="skip the SQLite scan cache - always re-read every .scs",
+    )
+    p.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="drop every cached entry before scanning",
+    )
     p.set_defaults(func=run)
     return p
 
@@ -56,32 +67,45 @@ def run(args: argparse.Namespace) -> int:
         print(f"No {game.value.upper()} install found.", file=sys.stderr)
         return 1
 
-    for install in installs:
-        print(f"=== {game.value.upper()} ({install.kind.value}) ===")
-        print(f"  documents: {install.documents_dir}")
+    cache: ScanCache | None = None
+    if not args.no_cache:
+        cache = ScanCache(default_cache_path())
+        if args.clear_cache:
+            removed = cache.clear()
+            print(f"cache: cleared {removed} entries")
 
-        profile_paths = discover_profiles(install)
-        if not profile_paths:
-            print("  profile  : (no profiles found in this install)")
-            if not args.list_profiles:
-                mods = scan_game_install(install)
-                _render_mod_table(mods, set())
+    try:
+        for install in installs:
+            print(f"=== {game.value.upper()} ({install.kind.value}) ===")
+            print(f"  documents: {install.documents_dir}")
+            if cache is not None:
+                print(f"  cache    : {default_cache_path()}")
+
+            profile_paths = discover_profiles(install)
+            if not profile_paths:
+                print("  profile  : (no profiles found in this install)")
+                if not args.list_profiles:
+                    mods = scan_game_install(install, cache=cache)
+                    _render_mod_table(mods, set())
+                print()
+                continue
+
+            loaded = _load_all_profiles(profile_paths)
+            selected_idx = _select_profile(loaded, args.profile)
+            _render_profile_list(loaded, selected_idx)
+
+            if args.list_profiles:
+                print()
+                continue
+
+            active_names = _active_mod_names(loaded[selected_idx][1])
+            mods = scan_game_install(install, cache=cache)
+            _render_mod_table(mods, active_names)
             print()
-            continue
-
-        loaded = _load_all_profiles(profile_paths)
-        selected_idx = _select_profile(loaded, args.profile)
-        _render_profile_list(loaded, selected_idx)
-
-        if args.list_profiles:
-            print()
-            continue
-
-        active_names = _active_mod_names(loaded[selected_idx][1])
-        mods = scan_game_install(install)
-        _render_mod_table(mods, active_names)
-        print()
-    return 0
+        return 0
+    finally:
+        if cache is not None:
+            cache.close()
 
 
 def _load_all_profiles(paths: list[Path]) -> list[tuple[Path, Profile | None, float]]:
