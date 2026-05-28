@@ -37,12 +37,18 @@ from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import Game, GameInstall, detect_game_installs
 from easy_scsmodmanager.services.mod_matching import ActiveModMatcher, workshop_id_for_path
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
+from easy_scsmodmanager.services.profile_backup import (
+    create_backup,
+    list_backups,
+    restore_backup,
+)
 from easy_scsmodmanager.services.profile_reader import (
     ActiveMod,
     Profile,
     discover_profiles,
     read_profile,
 )
+from easy_scsmodmanager.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.threads.scan_thread import ScanResult, ScanThread
 from easy_scsmodmanager.ui.threads.workshop_fetch_thread import WorkshopFetchThread
@@ -144,6 +150,8 @@ class MainWindow(QMainWindow):
         right_layout.setSpacing(8)
         self._profile_header = ProfileHeader()
         self._profile_header.profile_selected.connect(self._on_profile_chosen)
+        self._profile_header.backup_requested.connect(self._on_backup_requested)
+        self._profile_header.restore_requested.connect(self._on_restore_requested)
         self._active_list = ActiveModList()
         self._active_list.mod_focus_requested.connect(self._on_active_mod_focus)
         right_layout.addWidget(self._profile_header)
@@ -437,6 +445,49 @@ class MainWindow(QMainWindow):
             self._filter = FilterState()
             self._refresh_grid()
             self._grid.focus_mod(match)
+
+    def _on_backup_requested(self) -> None:
+        if self._profile_sii_path is None:
+            return
+        try:
+            entry = create_backup(self._profile_sii_path)
+        except Exception as exc:
+            log.warning("backup failed: %s", exc)
+            self.statusBar().showMessage(t("status_bar.backup_failed", reason=str(exc)), 5000)
+            return
+        self.statusBar().showMessage(
+            t("status_bar.backup_created", label=entry.label),
+            5000,
+        )
+
+    def _on_restore_requested(self) -> None:
+        if self._profile_sii_path is None or self._profile is None:
+            return
+        backups = list_backups(self._profile_sii_path)
+        if not backups:
+            self.statusBar().showMessage(t("status_bar.no_backups"), 5000)
+            return
+        dialog = RestoreBackupDialog(
+            self._profile.profile_name or self._profile.dir_name,
+            backups,
+            parent=self,
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted or dialog.selected is None:
+            return
+        try:
+            restore_backup(dialog.selected, self._profile_sii_path)
+        except Exception as exc:
+            log.warning("restore failed: %s", exc)
+            self.statusBar().showMessage(t("status_bar.restore_failed", reason=str(exc)), 5000)
+            return
+        # Re-read the profile so the active list reflects the restored state.
+        self._load_profiles()
+        self._refresh_active_list()
+        self._refresh_grid()
+        self.statusBar().showMessage(
+            t("status_bar.restore_done", label=dialog.selected.label),
+            5000,
+        )
 
     def _on_profile_chosen(self, choice: ProfileChoice) -> None:
         if choice.sii_path == self._profile_sii_path:

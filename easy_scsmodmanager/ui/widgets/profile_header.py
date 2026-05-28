@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMenu,
+    QPushButton,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -41,6 +42,8 @@ class ProfileHeader(QWidget):
     AVATAR_SIZE = 48
 
     profile_selected = pyqtSignal(object)  # ProfileChoice
+    backup_requested = pyqtSignal()
+    restore_requested = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -90,7 +93,30 @@ class ProfileHeader(QWidget):
         self._menu = QMenu(self)
         self._switch_btn.setMenu(self._menu)
         self._switch_btn.setEnabled(False)
-        root.addWidget(self._switch_btn)
+
+        action_col = QVBoxLayout()
+        action_col.setContentsMargins(0, 0, 0, 0)
+        action_col.setSpacing(3)
+        action_col.addWidget(self._switch_btn)
+
+        backup_row = QHBoxLayout()
+        backup_row.setContentsMargins(0, 0, 0, 0)
+        backup_row.setSpacing(4)
+        self._backup_btn = QPushButton(t("profile_header.backup"))
+        self._backup_btn.setToolTip(t("profile_header.backup_tooltip"))
+        self._backup_btn.setStyleSheet(_secondary_button_style())
+        self._backup_btn.setEnabled(False)
+        self._backup_btn.clicked.connect(self.backup_requested.emit)
+        self._restore_btn = QPushButton(t("profile_header.restore"))
+        self._restore_btn.setToolTip(t("profile_header.restore_tooltip"))
+        self._restore_btn.setStyleSheet(_secondary_button_style())
+        self._restore_btn.setEnabled(False)
+        self._restore_btn.clicked.connect(self.restore_requested.emit)
+        backup_row.addWidget(self._backup_btn)
+        backup_row.addWidget(self._restore_btn)
+        action_col.addLayout(backup_row)
+
+        root.addLayout(action_col)
 
     # ------------------------------------------------------------------ #
     # public API
@@ -109,10 +135,14 @@ class ProfileHeader(QWidget):
             self._name_label.setText(t("profile_header.no_profile"))
             self._meta_label.setText("")
             self._avatar.clear()
+            self._backup_btn.setEnabled(False)
+            self._restore_btn.setEnabled(False)
             return
 
         self._name_label.setText(profile.profile_name or profile.dir_name)
         self._meta_label.setText(meta_text)
+        self._backup_btn.setEnabled(True)
+        self._restore_btn.setEnabled(True)
 
         if avatar_path is not None and avatar_path.is_file():
             pix = QPixmap(str(avatar_path))
@@ -140,3 +170,23 @@ class ProfileHeader(QWidget):
             action.triggered.connect(lambda _checked=False, c=choice: self.profile_selected.emit(c))
             self._menu.addAction(action)
         self._switch_btn.setEnabled(len(choices) > 1)
+
+
+def _primary_button_style() -> str:
+    return (
+        f"QToolButton {{ background-color: {Theme.PRIMARY}; color: {Theme.TEXT};"
+        f"border-radius: 3px; padding: 4px 10px; font-size: 12px; }}"
+        f"QToolButton:hover {{ background-color: {Theme.PRIMARY_HOVER}; }}"
+        f"QToolButton:disabled {{ background-color: {Theme.SURFACE_HOVER}; color: {Theme.TEXT_DIM}; }}"
+        "QToolButton::menu-indicator { image: none; }"
+    )
+
+
+def _secondary_button_style() -> str:
+    return (
+        f"QPushButton {{ background-color: {Theme.SURFACE_HOVER}; color: {Theme.TEXT};"
+        f"border: 1px solid {Theme.SURFACE_HOVER}; border-radius: 3px;"
+        f"padding: 3px 10px; font-size: 11px; }}"
+        f"QPushButton:hover {{ background-color: {Theme.PRIMARY}; }}"
+        f"QPushButton:disabled {{ color: {Theme.TEXT_DIM}; }}"
+    )

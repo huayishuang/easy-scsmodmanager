@@ -41,8 +41,8 @@ log = logging.getLogger(__name__)
 ENV_BINARY_OVERRIDE = "ESCSMM_HASHFS_EXTRACTOR"
 NATIVE_NAMES = ("extractor", "extractor.exe")
 MANIFEST_NAME = "manifest.sii"
-ICON_CANDIDATES = ("icon.jpg", "icon.png")
-PARTIAL_DEFAULT = "/manifest.sii,/icon.jpg,/icon.png"
+ICON_CANDIDATES = ("icon.jpg", "icon.png", "mod_icon.jpg", "mod_icon.png", "preview.jpg")
+PARTIAL_DEFAULT = "/manifest.sii,/icon.jpg,/icon.png,/mod_icon.jpg,/mod_icon.png,/preview.jpg"
 
 
 class HashFsExtractorNotAvailable(RuntimeError):
@@ -114,7 +114,7 @@ def extract_manifest_files(scs_path: Path) -> ExtractedManifest:
 
     with tempfile.TemporaryDirectory(prefix="escsmm_hashfs_") as tmp:
         dest = Path(tmp)
-        cmd = _build_command(binary, scs_path, dest)
+        cmd = _build_command(binary, scs_path, dest, partial=PARTIAL_DEFAULT)
         log.debug("running %s", cmd)
         completed = subprocess.run(  # noqa: S603 - controlled command list
             cmd,
@@ -127,16 +127,16 @@ def extract_manifest_files(scs_path: Path) -> ExtractedManifest:
         if manifest_path.is_file():
             manifest_text = manifest_path.read_text(encoding="utf-8", errors="replace")
 
-        icon_bytes: bytes | None = None
-        for name in ICON_CANDIDATES:
-            icon_path = dest / name
-            if icon_path.is_file():
-                icon_bytes = icon_path.read_bytes()
-                break
+        icon_bytes = _read_first_existing(dest, ICON_CANDIDATES)
 
-        # The extractor returns non-zero when any individual partial path
-        # is missing (e.g. mods without icon.jpg). That is fine as long
-        # as we got *something* useful or the request was a clean miss.
+        # Second pass: when manifest names a custom icon (rbgw.jpg,
+        # tandempack.jpg, ...) re-run --partial for that specific file.
+        if manifest_text is not None and icon_bytes is None:
+            custom_icon = _icon_name_from_manifest(manifest_text)
+            if custom_icon and custom_icon not in ICON_CANDIDATES:
+                _run_partial(binary, scs_path, dest, "/" + custom_icon)
+                icon_bytes = _read_first_existing(dest, (custom_icon,))
+
         if completed.returncode != 0 and manifest_text is None and icon_bytes is None:
             stderr = (completed.stderr or completed.stdout or "").strip()
             if _looks_like_hard_failure(stderr):
@@ -145,8 +145,48 @@ def extract_manifest_files(scs_path: Path) -> ExtractedManifest:
         return ExtractedManifest(manifest_text=manifest_text, icon_bytes=icon_bytes)
 
 
-def _build_command(binary: Path, scs_path: Path, dest: Path) -> list[str]:
-    args = [str(scs_path), "--dest", str(dest), "--partial", PARTIAL_DEFAULT, "--quiet"]
+def _run_partial(binary: Path, scs_path: Path, dest: Path, partial: str) -> None:
+    cmd = _build_command(binary, scs_path, dest, partial=partial)
+    try:
+        subprocess.run(  # noqa: S603
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        log.debug("second-pass partial extract failed for %s: %s", scs_path, exc)
+
+
+def _read_first_existing(dest: Path, names: tuple[str, ...]) -> bytes | None:
+    for name in names:
+        candidate = dest / name
+        if candidate.is_file():
+            try:
+                return candidate.read_bytes()
+            except OSError:
+                continue
+    return None
+
+
+_ICON_LINE = __import__("re").compile(r'^\s*icon\s*:\s*"([^"]+)"', __import__("re").MULTILINE)
+
+
+def _icon_name_from_manifest(manifest_text: str) -> str | None:
+    match = _ICON_LINE.search(manifest_text)
+    if match is None:
+        return None
+    return match.group(1).strip()
+
+
+def _build_command(
+    binary: Path,
+    scs_path: Path,
+    dest: Path,
+    *,
+    partial: str = PARTIAL_DEFAULT,
+) -> list[str]:
+    args = [str(scs_path), "--dest", str(dest), "--partial", partial, "--quiet"]
     if binary.suffix.lower() == ".exe" and sys.platform != "win32":
         return ["wine", str(binary), *args]
     return [str(binary), *args]

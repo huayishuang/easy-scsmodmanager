@@ -261,12 +261,14 @@ def _scan_zip(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None,
     except MissingManifest:
         return (
             _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"),
-            None,
+            _scavenge_zip_icon(scs_path),
             None,
         )
     except Exception as exc:
         log.debug("failed to read manifest from %s: %s", scs_path, exc)
-        return _error_mod(scs_path, fmt, str(exc)), None, None
+        # When manifest.sii itself is encrypted (ZipCrypto on map mods)
+        # we still try to pull out the unencrypted preview image.
+        return _error_mod(scs_path, fmt, str(exc)), _scavenge_zip_icon(scs_path), None
     return (
         ScannedMod(
             path=scs_path,
@@ -278,6 +280,47 @@ def _scan_zip(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None,
         bundle.icon_bytes,
         bundle.description_text,
     )
+
+
+_ZIP_ICON_CANDIDATES = (
+    "icon.jpg",
+    "icon.png",
+    "mod_icon.jpg",
+    "mod_icon.png",
+    "preview.jpg",
+    "preview.png",
+    "thumbnail.jpg",
+)
+
+
+def _scavenge_zip_icon(scs_path: Path) -> bytes | None:
+    """Pull an icon out of a ZIP even when the manifest is unreadable.
+
+    Map mods that encrypt manifest.sii usually leave icon.jpg / mod_icon.jpg
+    in the clear next to it - just enough for an in-game thumbnail. We
+    walk a fixed candidate list rather than parse manifest references.
+    """
+    try:
+        with ZipScsReader(scs_path) as reader:
+            for name in _ZIP_ICON_CANDIDATES:
+                if reader.has(name):
+                    try:
+                        return reader.read_bytes(name)
+                    except Exception:
+                        continue
+            # Last resort: scan the namelist for any image at the root.
+            for entry in reader.list_files():
+                if "/" in entry:
+                    continue
+                lower = entry.lower()
+                if lower.endswith((".jpg", ".jpeg", ".png")):
+                    try:
+                        return reader.read_bytes(entry)
+                    except Exception:
+                        continue
+    except Exception as exc:
+        log.debug("zip icon scavenge failed for %s: %s", scs_path, exc)
+    return None
 
 
 def _scan_hashfs(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None, str | None]:
