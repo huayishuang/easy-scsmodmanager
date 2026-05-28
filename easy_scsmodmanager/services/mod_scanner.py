@@ -63,7 +63,7 @@ def _scan_one(scs_path: Path) -> ScannedMod:
     try:
         fmt = detect_format(scs_path)
     except OSError as exc:
-        log.warning("could not read %s: %s", scs_path, exc)
+        log.debug("could not read %s: %s", scs_path, exc)
         return ScannedMod(path=scs_path, format=ScsFormat.UNKNOWN, manifest=None, error=str(exc))
 
     if fmt == ScsFormat.ZIP:
@@ -98,5 +98,5 @@ def _scan_zip(scs_path: Path, fmt: ScsFormat) -> ScannedMod:
         manifest = ModManifest.from_sii_units(units)
         return ScannedMod(path=scs_path, format=fmt, manifest=manifest, error=None)
     except Exception as exc:
-        log.warning("failed to read manifest from %s: %s", scs_path, exc)
+        log.debug("failed to read manifest from %s: %s", scs_path, exc)
         return ScannedMod(path=scs_path, format=fmt, manifest=None, error=str(exc))
