@@ -16,6 +16,13 @@ from pathlib import Path
 from easy_scsmodmanager.core.game_paths import GameInstall
 from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat, detect_format
+from easy_scsmodmanager.integrations.scs.hashfs_extractor import (
+    HashFsExtractorNotAvailable,
+    extract_manifest_files,
+)
+from easy_scsmodmanager.integrations.scs.hashfs_extractor import (
+    is_available as hashfs_extractor_available,
+)
 from easy_scsmodmanager.integrations.scs.zip_reader import ZipScsReader
 from easy_scsmodmanager.integrations.sii.parser import parse_sii
 
@@ -69,18 +76,45 @@ def _scan_one(scs_path: Path) -> ScannedMod:
     if fmt == ScsFormat.ZIP:
         return _scan_zip(scs_path, fmt)
     if fmt in (ScsFormat.HASHFS_V1, ScsFormat.HASHFS_V2):
-        return ScannedMod(
-            path=scs_path,
-            format=fmt,
-            manifest=None,
-            error="HashFS container reader not implemented yet",
-        )
+        return _scan_hashfs(scs_path, fmt)
     return ScannedMod(
         path=scs_path,
         format=fmt,
         manifest=None,
         error="Unknown SCS container format",
     )
+
+
+def _scan_hashfs(scs_path: Path, fmt: ScsFormat) -> ScannedMod:
+    if not hashfs_extractor_available():
+        return ScannedMod(
+            path=scs_path,
+            format=fmt,
+            manifest=None,
+            error="HashFS reader requires wine + scs_extractor.exe (not available)",
+        )
+    try:
+        extracted = extract_manifest_files(scs_path)
+    except HashFsExtractorNotAvailable as exc:
+        return ScannedMod(path=scs_path, format=fmt, manifest=None, error=str(exc))
+    except Exception as exc:
+        log.debug("hashfs extract failed for %s: %s", scs_path, exc)
+        return ScannedMod(path=scs_path, format=fmt, manifest=None, error=str(exc))
+
+    if extracted.manifest_text is None:
+        return ScannedMod(
+            path=scs_path,
+            format=fmt,
+            manifest=None,
+            error=f"missing {MANIFEST_ENTRY}",
+        )
+    try:
+        units = parse_sii(extracted.manifest_text)
+        manifest = ModManifest.from_sii_units(units)
+    except Exception as exc:
+        log.debug("hashfs manifest parse failed for %s: %s", scs_path, exc)
+        return ScannedMod(path=scs_path, format=fmt, manifest=None, error=str(exc))
+    return ScannedMod(path=scs_path, format=fmt, manifest=manifest, error=None)
 
 
 def _scan_zip(scs_path: Path, fmt: ScsFormat) -> ScannedMod:
