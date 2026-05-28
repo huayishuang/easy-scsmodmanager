@@ -6,7 +6,6 @@ from pathlib import Path
 from easy_scsmodmanager.core.game_paths import Game, GameInstall, InstallKind
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import (
-    ScannedMod,
     scan_game_install,
     scan_mod_directory,
     scan_workshop_directory,
@@ -90,7 +89,7 @@ def test_scan_mod_directory_zip_without_manifest_marks_error(tmp_path: Path) -> 
 
 
 def test_scan_mod_directory_hashfs_mod_records_format_without_manifest(tmp_path: Path) -> None:
-    scs = _hashfs_mod(tmp_path / "modern.scs", version=2)
+    _hashfs_mod(tmp_path / "modern.scs", version=2)
 
     mods = scan_mod_directory(tmp_path)
 

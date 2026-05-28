@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from easy_scsmodmanager.integrations.sii.parser import SiiUnit
 
@@ -23,9 +23,7 @@ class ModManifest:
     @classmethod
     def from_sii_unit(cls, unit: SiiUnit) -> ModManifest:
         if unit.unit_class != MOD_PACKAGE_CLASS:
-            raise ValueError(
-                f"Expected unit_class '{MOD_PACKAGE_CLASS}', got '{unit.unit_class}'"
-            )
+            raise ValueError(f"Expected unit_class '{MOD_PACKAGE_CLASS}', got '{unit.unit_class}'")
         props = unit.properties
         return cls(
             display_name=str(props.get("display_name", "")),
@@ -48,6 +46,6 @@ class ModManifest:
 def _to_tuple_of_str(value: object) -> tuple[str, ...]:
     if isinstance(value, str):
         return (value,)
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return tuple(str(v) for v in value)
     return ()

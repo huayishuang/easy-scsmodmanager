@@ -7,8 +7,8 @@ import pytest
 from Crypto.Cipher import AES
 
 from easy_scsmodmanager.integrations.sii.crypto import (
-    SCSC_MAGIC,
     SCS_KEY,
+    SCSC_MAGIC,
     decrypt_scsc,
     is_scsc,
 )
@@ -24,13 +24,7 @@ def _encrypt_for_test(plaintext: bytes) -> bytes:
     cipher = AES.new(SCS_KEY, AES.MODE_CBC, iv)
     ciphertext = cipher.encrypt(padded)
     hmac = b"\x00" * 32
-    return (
-        SCSC_MAGIC
-        + hmac
-        + iv
-        + struct.pack("<I", len(plaintext))
-        + ciphertext
-    )
+    return SCSC_MAGIC + hmac + iv + struct.pack("<I", len(plaintext)) + ciphertext
 
 
 def test_is_scsc_detects_magic_bytes() -> None:
@@ -44,9 +38,7 @@ def test_is_scsc_returns_false_for_other_magic() -> None:
 
 
 def test_decrypt_scsc_roundtrip_recovers_original_plaintext() -> None:
-    original = (
-        b"SiiNunit\n{\nprofile: .x\n{\nname: \"test\"\nactive_mods: 0\n}\n}\n"
-    )
+    original = b'SiiNunit\n{\nprofile: .x\n{\nname: "test"\nactive_mods: 0\n}\n}\n'
     blob = _encrypt_for_test(original)
 
     assert decrypt_scsc(blob) == original

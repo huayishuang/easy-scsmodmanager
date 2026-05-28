@@ -93,8 +93,10 @@ def workshop_dir_path(steam_library: Path, game: Game) -> Path:
 
 def windows_documents(game: Game) -> Path:
     user_profile = os.environ.get("USERPROFILE")
-    onedrive = os.environ.get("OneDrive")
-    docs_root = Path(onedrive) / "Documents" if onedrive else Path(user_profile or "~") / "Documents"
+    onedrive = os.environ.get("OneDrive")  # noqa: SIM112 - real Windows env name
+    docs_root = (
+        Path(onedrive) / "Documents" if onedrive else Path(user_profile or "~") / "Documents"
+    )
     return docs_root / GAME_DIRECTORY_NAME[game]
 
 

@@ -137,7 +137,7 @@ def _render_profile_list(
         active = len(profile.active_mods) if profile else "?"
         when = datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
         print(f"    {marker} [{i + 1}] {name!r:36}  active={active}  modified={when}")
-    print(f"  (--profile <number|hex|substring> to pick a different one)")
+    print("  (--profile <number|hex|substring> to pick a different one)")
 
 
 def _active_mod_names(profile: Profile | None) -> set[str]:
@@ -166,9 +166,7 @@ def _render_mod_table(mods: Iterable[ScannedMod], active_names: set[str]) -> Non
         f"  total={len(rows)}  active={counts['active']}  "
         f"inactive={counts['inactive']}  error={counts['error']}"
     )
-    print(
-        f"  {'status':<9}{'fmt':<10}{'name':<52}{'author':<26}categories"
-    )
+    print(f"  {'status':<9}{'fmt':<10}{'name':<52}{'author':<26}categories")
     for status, fmt, name, author, categories in rows:
         print(f"  {status:<9}{fmt:<10}{name:<52}{author:<26}{categories}")
 

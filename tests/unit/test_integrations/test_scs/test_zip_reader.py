@@ -16,7 +16,7 @@ def _make_zip(path: Path, entries: dict[str, bytes]) -> Path:
 
 
 def test_read_text_decodes_utf8_entry(tmp_path: Path) -> None:
-    scs = _make_zip(tmp_path / "mod.scs", {"manifest.sii": "SiiNunit\n{}\n".encode()})
+    scs = _make_zip(tmp_path / "mod.scs", {"manifest.sii": b"SiiNunit\n{}\n"})
 
     with ZipScsReader(scs) as reader:
         assert reader.read_text("manifest.sii") == "SiiNunit\n{}\n"
@@ -63,9 +63,7 @@ def test_list_files_filters_by_prefix(tmp_path: Path) -> None:
     )
 
     with ZipScsReader(scs) as reader:
-        assert sorted(reader.list_files("def/")) == sorted(
-            ["def/vehicle.sii", "def/sound.sii"]
-        )
+        assert sorted(reader.list_files("def/")) == sorted(["def/vehicle.sii", "def/sound.sii"])
 
 
 def test_context_manager_closes_handle(tmp_path: Path) -> None:
@@ -90,6 +88,5 @@ def test_raises_for_non_zip_file(tmp_path: Path) -> None:
 def test_raises_keyerror_for_missing_read(tmp_path: Path) -> None:
     scs = _make_zip(tmp_path / "mod.scs", {"manifest.sii": b"x"})
 
-    with ZipScsReader(scs) as reader:
-        with pytest.raises(KeyError):
-            reader.read_bytes("nope.sii")
+    with ZipScsReader(scs) as reader, pytest.raises(KeyError):
+        reader.read_bytes("nope.sii")

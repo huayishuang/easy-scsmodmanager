@@ -9,9 +9,9 @@ or ScsC-encrypted - this module handles both transparently.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
 
 from easy_scsmodmanager.core.game_paths import GAME_APP_ID, Game, GameInstall
 from easy_scsmodmanager.integrations.sii.crypto import decrypt_scsc, is_scsc
@@ -78,11 +78,15 @@ def decode_profile_dir_name(hex_name: str) -> str:
 
 def read_profile(profile_sii_path: Path) -> Profile:
     data = profile_sii_path.read_bytes()
-    text = decrypt_scsc(data).decode("utf-8", errors="replace") if is_scsc(data) else data.decode(
-        "utf-8", errors="replace"
+    text = (
+        decrypt_scsc(data).decode("utf-8", errors="replace")
+        if is_scsc(data)
+        else data.decode("utf-8", errors="replace")
     )
     units = parse_sii(text)
-    return Profile.from_sii_units(units, dir_name=decode_profile_dir_name(profile_sii_path.parent.name))
+    return Profile.from_sii_units(
+        units, dir_name=decode_profile_dir_name(profile_sii_path.parent.name)
+    )
 
 
 def discover_profiles(install: GameInstall) -> list[Path]:
