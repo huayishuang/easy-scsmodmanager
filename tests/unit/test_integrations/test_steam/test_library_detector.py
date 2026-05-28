@@ -79,10 +79,7 @@ def test_steam_install_candidates_linux_includes_native_steam_dirs(
 
     assert tmp_path / ".steam" / "steam" in candidates
     assert tmp_path / ".local" / "share" / "Steam" in candidates
-    assert (
-        tmp_path / ".var" / "app" / "com.valvesoftware.Steam" / "data" / "Steam"
-        in candidates
-    )
+    assert tmp_path / ".var" / "app" / "com.valvesoftware.Steam" / "data" / "Steam" in candidates
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Linux env handling")
@@ -136,6 +133,4 @@ def test_discover_steam_libraries_combines_all_installs_and_dedupes(
 
     libs = discover_steam_libraries()
 
-    assert sorted(libs) == sorted(
-        [Path("/lib/shared"), Path("/lib/only-a"), Path("/lib/only-b")]
-    )
+    assert sorted(libs) == sorted([Path("/lib/shared"), Path("/lib/only-a"), Path("/lib/only-b")])

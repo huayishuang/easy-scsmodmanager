@@ -43,9 +43,7 @@ def test_linux_native_documents_respects_xdg_data_home(
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "custom"))
 
-    assert linux_native_documents(Game.ETS2) == (
-        tmp_path / "custom" / "Euro Truck Simulator 2"
-    )
+    assert linux_native_documents(Game.ETS2) == (tmp_path / "custom" / "Euro Truck Simulator 2")
 
 
 def test_proton_documents_path_uses_steam_compatdata_layout(tmp_path: Path) -> None:

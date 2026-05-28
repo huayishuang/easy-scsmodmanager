@@ -174,7 +174,7 @@ mod_package: .package
 def test_parses_file_with_utf8_bom_prefix() -> None:
     # SCS mod authors on Windows save manifest.sii with a UTF-8 BOM.
     # Real-world: ~6 of 313 mods in a representative ETS2 collection.
-    text = "﻿SiiNunit\n{\nmod_package: .x\n{\ndisplay_name: \"WithBOM\"\n}\n}\n"
+    text = '﻿SiiNunit\n{\nmod_package: .x\n{\ndisplay_name: "WithBOM"\n}\n}\n'
 
     units = parse_sii(text)
 

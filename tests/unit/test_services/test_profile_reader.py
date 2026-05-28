@@ -25,11 +25,7 @@ def _encrypt_plain(plaintext: bytes) -> bytes:
     iv = b"\x11" * 16
     cipher = AES.new(SCS_KEY, AES.MODE_CBC, iv)
     return (
-        SCSC_MAGIC
-        + b"\x00" * 32
-        + iv
-        + struct.pack("<I", len(plaintext))
-        + cipher.encrypt(padded)
+        SCSC_MAGIC + b"\x00" * 32 + iv + struct.pack("<I", len(plaintext)) + cipher.encrypt(padded)
     )
 
 
@@ -63,9 +59,7 @@ def test_active_mod_parse_extracts_name_and_display() -> None:
 
 
 def test_active_mod_parse_handles_missing_display_name() -> None:
-    assert ActiveMod.parse("mod_no_display") == ActiveMod(
-        name="mod_no_display", display_name=""
-    )
+    assert ActiveMod.parse("mod_no_display") == ActiveMod(name="mod_no_display", display_name="")
 
 
 def test_active_mod_parse_keeps_extra_pipes_in_display() -> None:
@@ -134,7 +128,7 @@ def test_profile_from_sii_units_handles_zero_active_mods() -> None:
 def test_profile_from_sii_units_raises_when_no_profile_unit() -> None:
     from easy_scsmodmanager.integrations.sii.parser import parse_sii
 
-    text = "SiiNunit\n{\nother: .x\n{\nname: \"x\"\n}\n}\n"
+    text = 'SiiNunit\n{\nother: .x\n{\nname: "x"\n}\n}\n'
     units = parse_sii(text)
 
     with pytest.raises(ValueError, match="profile"):

@@ -11,15 +11,17 @@ def _unit(props: dict) -> SiiUnit:
 
 
 def test_from_sii_extracts_known_fields() -> None:
-    unit = _unit({
-        "package_version": "1.2.3",
-        "display_name": "Real Train Sounds",
-        "author": "Cip",
-        "category": ["sound", "ai_traffic"],
-        "description_file": "description.txt",
-        "icon": "icon.jpg",
-        "compatible_versions": ["1.59.*", "1.60.*"],
-    })
+    unit = _unit(
+        {
+            "package_version": "1.2.3",
+            "display_name": "Real Train Sounds",
+            "author": "Cip",
+            "category": ["sound", "ai_traffic"],
+            "description_file": "description.txt",
+            "icon": "icon.jpg",
+            "compatible_versions": ["1.59.*", "1.60.*"],
+        }
+    )
 
     manifest = ModManifest.from_sii_unit(unit)
 
