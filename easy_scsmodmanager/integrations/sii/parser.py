@@ -207,5 +207,8 @@ class _Parser:
 
 
 def parse_sii(text: str) -> list[SiiUnit]:
+    # SCS mod authors on Windows often save manifest.sii with a UTF-8 BOM.
+    if text.startswith("﻿"):
+        text = text[1:]
     tokens = _tokenize(text)
     return _Parser(tokens).parse()

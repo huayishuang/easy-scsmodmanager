@@ -171,6 +171,16 @@ mod_package: .package
     assert p["compatible_versions"] == ["1.59.*"]
 
 
+def test_parses_file_with_utf8_bom_prefix() -> None:
+    # SCS mod authors on Windows save manifest.sii with a UTF-8 BOM.
+    # Real-world: ~6 of 313 mods in a representative ETS2 collection.
+    text = "﻿SiiNunit\n{\nmod_package: .x\n{\ndisplay_name: \"WithBOM\"\n}\n}\n"
+
+    units = parse_sii(text)
+
+    assert units[0].properties["display_name"] == "WithBOM"
+
+
 def test_raises_on_missing_siinunit_header() -> None:
     text = "{\nmod_package: .x\n{\n}\n}\n"
 
