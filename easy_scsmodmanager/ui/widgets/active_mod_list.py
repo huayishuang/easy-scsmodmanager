@@ -1,18 +1,17 @@
 """Right-hand panel listing the profile's active mods in priority order.
 
 Read-only in Phase 2 - no drag/drop, no priority buttons wired yet.
-Renders each ActiveMod with the (decoded) display name and the
-internal mod name as muted subtitle, plus a status colour dot that
-matches the install state (green = installed locally, red = listed in
-profile but not on disk).
+Renders each ActiveMod with the (decoded) display name and a small
+thumbnail when the scanner has cached an icon for that mod. The mod's
+internal name lands in the tooltip together with an install hint.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 from PyQt6.QtCore import QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QIcon, QPainter, QPixmap
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -26,6 +25,8 @@ from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
 
+ICON_SIZE = QSize(32, 18)  # 16:9 mini-thumbnail
+
 
 class ActiveModList(QWidget):
     """Title bar + scrollable list of active mods."""
@@ -35,6 +36,7 @@ class ActiveModList(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._installed_names: set[str] = set()
+        self._placeholder_icon = _placeholder_icon()
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -52,8 +54,8 @@ class ActiveModList(QWidget):
         root.addLayout(header)
 
         self._list = QListWidget()
-        self._list.setStyleSheet(
-            f"""
+        self._list.setIconSize(ICON_SIZE)
+        self._list.setStyleSheet(f"""
             QListWidget {{
                 background-color: {Theme.SURFACE};
                 color: {Theme.TEXT};
@@ -69,8 +71,7 @@ class ActiveModList(QWidget):
                 background-color: {Theme.PRIMARY};
                 color: {Theme.TEXT};
             }}
-            """
-        )
+            """)
         self._list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self._list.itemSelectionChanged.connect(self._on_selection_changed)
         root.addWidget(self._list)
@@ -93,9 +94,14 @@ class ActiveModList(QWidget):
         mods: Iterable[ActiveMod],
         *,
         installed_names: set[str] | None = None,
+        icon_for: Callable[[ActiveMod], bytes | None] | None = None,
     ) -> None:
-        """Replace the list. ``installed_names`` is the set of mod stems
-        present on disk - mods missing from disk render in red."""
+        """Replace the list.
+
+        ``installed_names`` is the set of mod stems present on disk - the
+        tooltip mentions missing ones. ``icon_for`` is an optional
+        callable returning cached icon bytes per ActiveMod.
+        """
         self._installed_names = installed_names or set()
         self._list.clear()
         # Profile.active_mods stores priority 0 at the bottom; show the
@@ -104,8 +110,8 @@ class ActiveModList(QWidget):
         for mod in ordered:
             item = QListWidgetItem(self._format_label(mod))
             item.setData(Qt.ItemDataRole.UserRole, mod)
-            item.setIcon(_status_icon(self._status_for(mod)))
-            item.setToolTip(f"{mod.name}\n{mod.display_name}")
+            item.setIcon(self._icon_for_mod(mod, icon_for))
+            item.setToolTip(self._tooltip_for(mod))
             self._list.addItem(item)
 
         self._count.setText(t("active_panel.count", count=len(ordered)))
@@ -131,21 +137,42 @@ class ActiveModList(QWidget):
             return mod.display_name
         return mod.name
 
-    def _status_for(self, mod: ActiveMod) -> str:
-        if mod.name in self._installed_names:
-            return "active"
-        return "incompatible"
+    def _icon_for_mod(
+        self,
+        mod: ActiveMod,
+        icon_for: Callable[[ActiveMod], bytes | None] | None,
+    ) -> QIcon:
+        if icon_for is not None:
+            data = icon_for(mod)
+            if data:
+                pix = QPixmap()
+                if pix.loadFromData(data):
+                    return QIcon(
+                        pix.scaled(
+                            ICON_SIZE,
+                            Qt.AspectRatioMode.KeepAspectRatio,
+                            Qt.TransformationMode.SmoothTransformation,
+                        )
+                    )
+        return self._placeholder_icon
+
+    def _tooltip_for(self, mod: ActiveMod) -> str:
+        lines = [mod.display_name or mod.name, f"id: {mod.name}"]
+        if mod.name not in self._installed_names:
+            lines.append("(currently missing from disk)")
+        return "\n".join(lines)
 
 
-def _status_icon(kind: str) -> QIcon:
-    color = QColor(Theme.status_color(kind))
-    pix = QPixmap(QSize(10, 10))
+def _placeholder_icon() -> QIcon:
+    """A muted filled rectangle used when no per-mod icon is cached."""
+    from PyQt6.QtGui import QColor, QPainter
+
+    pix = QPixmap(ICON_SIZE)
     pix.fill(Qt.GlobalColor.transparent)
-
     painter = QPainter(pix)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setBrush(color)
+    painter.setBrush(QColor(Theme.SURFACE_HOVER))
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawEllipse(0, 0, 10, 10)
+    painter.drawRoundedRect(0, 0, ICON_SIZE.width(), ICON_SIZE.height(), 2, 2)
     painter.end()
     return QIcon(pix)

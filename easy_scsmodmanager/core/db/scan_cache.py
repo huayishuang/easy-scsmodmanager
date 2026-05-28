@@ -160,8 +160,7 @@ class ScanCache:
         if current >= SCHEMA_VERSION:
             return
         with self._conn:
-            self._conn.execute(
-                """
+            self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS mod_cache (
                     path          TEXT    PRIMARY KEY,
                     mtime         REAL    NOT NULL,
@@ -172,8 +171,7 @@ class ScanCache:
                     icon_bytes    BLOB,
                     scanned_at    REAL    NOT NULL
                 )
-                """
-            )
+                """)
             if current < 2:
                 cols = {row[1] for row in self._conn.execute("PRAGMA table_info(mod_cache)")}
                 if "description" not in cols:

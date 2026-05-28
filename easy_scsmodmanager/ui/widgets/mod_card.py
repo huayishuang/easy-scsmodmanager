@@ -272,8 +272,7 @@ class ModCard(QFrame):
     def _apply_style(self) -> None:
         border_color = Theme.PRIMARY if self._is_selected else Theme.SURFACE
         background = Theme.SURFACE_SELECTED if self._is_selected else Theme.SURFACE
-        self.setStyleSheet(
-            f"""
+        self.setStyleSheet(f"""
             #ModCard {{
                 background-color: {background};
                 border: {Theme.BORDER_WIDTH}px solid {border_color};
@@ -292,8 +291,7 @@ class ModCard(QFrame):
             QToolButton:hover {{
                 color: {Theme.ACCENT};
             }}
-            """
-        )
+            """)
 
 
 def _make_tool_button(text: str, tooltip: str, on_click: Callable[[], None]) -> QToolButton:

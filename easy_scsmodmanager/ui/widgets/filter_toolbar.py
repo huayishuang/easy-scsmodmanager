@@ -50,8 +50,7 @@ class FilterToolbar(QWidget):
         self._debounce.setInterval(SEARCH_DEBOUNCE_MS)
         self._debounce.timeout.connect(self._emit_filter)
 
-        self.setStyleSheet(
-            f"""
+        self.setStyleSheet(f"""
             QLineEdit, QComboBox {{
                 background-color: {Theme.SURFACE};
                 color: {Theme.TEXT};
@@ -65,8 +64,7 @@ class FilterToolbar(QWidget):
             QLabel {{
                 color: {Theme.TEXT_DIM};
             }}
-            """
-        )
+            """)
 
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)

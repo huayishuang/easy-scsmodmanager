@@ -208,6 +208,7 @@ class MainWindow(QMainWindow):
             self._active_list.set_active_mods(
                 self._profile.active_mods,
                 installed_names=installed_names,
+                icon_for=self._active_icon_for,
             )
 
         active_count = sum(1 for m in self._all_mods if m.path.stem in active_names)
@@ -243,6 +244,18 @@ class MainWindow(QMainWindow):
 
     def _icon_for(self, mod: ScannedMod) -> bytes | None:
         entry = self._cache.get(mod.path)
+        if entry is None:
+            return None
+        return entry.icon_bytes
+
+    def _active_icon_for(self, active_mod) -> bytes | None:
+        # The cache is keyed by mod-file path; the profile only knows the
+        # stem. Look up the scanned mod whose path matches and return its
+        # cached icon bytes if any.
+        match = next((m for m in self._all_mods if m.path.stem == active_mod.name), None)
+        if match is None:
+            return None
+        entry = self._cache.get(match.path)
         if entry is None:
             return None
         return entry.icon_bytes
