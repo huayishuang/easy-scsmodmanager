@@ -427,22 +427,23 @@ class MainWindow(QMainWindow):
         )
 
     def _on_mods_dropped(self, paths: list[str], row: int) -> None:
-        # mods dragged from the grid get inserted at the drop position;
-        # already-active ones are skipped rather than duplicated
+        # mods dragged from the grid land at the drop position; an already
+        # active mod is relocated there (so the user can re-order without
+        # scrolling the whole way up the active list)
         by_path = {str(mod.path): mod for mod in self._all_mods}
-        existing = {m.name for m in self._active_list.display_order()}
-        to_add: list[ActiveMod] = []
+        to_place: list[ActiveMod] = []
+        seen: set[str] = set()
         for path in paths:
             mod = by_path.get(path)
             if mod is None:
                 continue
             name = active_name_for(mod)
-            if name in existing:
+            if name in seen:  # dedup within this drag itself
                 continue
-            existing.add(name)
-            to_add.append(ActiveMod(name=name, display_name=self._display_name_for(mod)))
-        if to_add:
-            self._active_list.insert_mods(to_add, at=row)
+            seen.add(name)
+            to_place.append(ActiveMod(name=name, display_name=self._display_name_for(mod)))
+        if to_place:
+            self._active_list.insert_or_move(to_place, at=row)
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:

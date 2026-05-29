@@ -273,6 +273,18 @@ class ActiveModList(QWidget):
         self._rerender()
         self.order_changed.emit()
 
+    def insert_or_move(self, mods: list[ActiveMod], at: int) -> None:
+        """Insert ``mods`` at display index ``at``; mods already in the list
+        are relocated there instead of duplicated. Lets the user drag an
+        already-active mod from the grid straight to the right spot."""
+        names = {m.name for m in mods}
+        removed_before = sum(1 for i, m in enumerate(self._mods) if m.name in names and i < at)
+        kept = [m for m in self._mods if m.name not in names]
+        target = max(0, min(at - removed_before, len(kept)))
+        self._mods = kept[:target] + list(mods) + kept[target:]
+        self._rerender()
+        self.order_changed.emit()
+
     def move_rows(self, rows: list[int], target: int) -> None:
         picked = sorted(set(rows))
         moving = [self._mods[r] for r in picked]

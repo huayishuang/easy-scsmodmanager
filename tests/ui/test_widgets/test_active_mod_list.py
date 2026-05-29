@@ -108,3 +108,31 @@ def test_focus_active_returns_false_for_unknown(qtbot: QtBot) -> None:
     w = _list(qtbot, ["a", "b"])
 
     assert w.focus_active("nope") is False
+
+
+def test_insert_or_move_relocates_an_already_active_mod(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b", "c", "d"])  # display top->bottom: d, c, b, a
+
+    # "a" is at the very bottom; drop it at the top
+    w.insert_or_move([ActiveMod("a", "A")], at=0)
+
+    assert w.display_order()[0].name == "a"
+    assert [m.name for m in w.display_order()].count("a") == 1  # moved, not duplicated
+
+
+def test_insert_or_move_inserts_a_new_mod(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b"])  # display: b, a
+
+    w.insert_or_move([ActiveMod("x", "X")], at=1)
+
+    assert [m.name for m in w.display_order()] == ["b", "x", "a"]
+
+
+def test_insert_or_move_relocates_a_block(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b", "c", "d", "e"])  # display: e, d, c, b, a
+
+    # drag the bottom block [b, a] up to the top
+    w.insert_or_move([ActiveMod("b", "B"), ActiveMod("a", "A")], at=0)
+
+    assert [m.name for m in w.display_order()][:2] == ["b", "a"]
+    assert len(w.display_order()) == 5  # nothing duplicated or lost

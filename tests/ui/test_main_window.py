@@ -117,7 +117,7 @@ def test_drop_from_grid_inserts_mods_at_row(qtbot) -> None:
     assert window._active_list.display_order()[0].display_name == "Drop Me"
 
 
-def test_drop_skips_already_active_mod(qtbot) -> None:
+def test_drop_relocates_already_active_mod_without_duplicating(qtbot) -> None:
     from pathlib import Path
 
     from easy_scsmodmanager.core.models.mod_manifest import ModManifest
@@ -134,12 +134,15 @@ def test_drop_skips_already_active_mod(qtbot) -> None:
         error=None,
     )
     window._all_mods = [mod]
-    window._active_list.set_active_mods([ActiveMod("already", "Already")])
+    window._active_list.set_active_mods(
+        [ActiveMod("already", "Already"), ActiveMod("other", "Other")]
+    )
 
-    window._on_mods_dropped(["/mod/already.scs"], 0)
+    window._on_mods_dropped(["/mod/already.scs"], 0)  # drag from grid to the top
 
-    names = [m.name for m in window._active_list.display_order()]
-    assert names.count("already") == 1  # not duplicated
+    order = [m.name for m in window._active_list.display_order()]
+    assert order.count("already") == 1  # moved, not duplicated
+    assert order[0] == "already"  # relocated to the drop position
 
 
 def test_restore_reachable_when_profile_failed_to_parse(qtbot, tmp_path, monkeypatch) -> None:
