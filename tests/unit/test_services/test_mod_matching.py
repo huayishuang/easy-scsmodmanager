@@ -80,3 +80,37 @@ def test_installed_active_names_returns_matchable_names() -> None:
     ]
 
     assert matcher.installed_active_names(actives) == {"alpha", "universal"}
+
+
+def test_active_name_for_local_mod_is_the_file_stem() -> None:
+    from easy_scsmodmanager.services.mod_matching import active_name_for
+
+    mod = _scanned(Path("/docs/ETS2/mod/my_cool_map.scs"), "My Cool Map")
+
+    assert active_name_for(mod) == "my_cool_map"
+
+
+def test_active_name_for_workshop_mod_is_padded_hex_package() -> None:
+    from easy_scsmodmanager.services.mod_matching import active_name_for
+
+    mod = _scanned(
+        Path("/games/SteamLib/steamapps/workshop/content/227300/3586995323/universal.scs"),
+        "Workshop Map",
+    )
+
+    assert active_name_for(mod) == "mod_workshop_package.00000000D5CD347B"
+
+
+def test_active_name_for_workshop_round_trips_through_extractor() -> None:
+    from easy_scsmodmanager.services.mod_matching import (
+        _extract_workshop_id_from_name,
+        active_name_for,
+    )
+
+    mod = _scanned(
+        Path("/games/SteamLib/steamapps/workshop/content/270880/977853202/universal"),
+        "ATS Mod",
+    )
+
+    name = active_name_for(mod)
+    assert _extract_workshop_id_from_name(name) == "977853202"

@@ -98,6 +98,18 @@ def workshop_id_for_path(path: Path) -> str | None:
 _workshop_id_for = workshop_id_for_path
 
 
+def active_name_for(mod: ScannedMod) -> str:
+    """The name this mod takes in active_mods[] - inverse of lookup().
+
+    Workshop mods become ``mod_workshop_package.<16-char upper hex>`` of the
+    published-file-id; everything else uses the file/directory stem.
+    """
+    ws_id = workshop_id_for_path(mod.path)
+    if ws_id is not None:
+        return f"mod_workshop_package.{int(ws_id):016X}"
+    return mod.path.stem
+
+
 def _extract_workshop_id_from_name(name: str) -> str | None:
     """``mod_workshop_package.000000003A4B7C12`` -> ``"977853202"``.
 
