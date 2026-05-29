@@ -98,6 +98,28 @@ def workshop_id_for_path(path: Path) -> str | None:
 _workshop_id_for = workshop_id_for_path
 
 
+def resolve_display_name(
+    mod: ScannedMod,
+    active_display_names: dict[str, str],
+    workshop_title: str | None = None,
+) -> str:
+    """Best human name for a mod.
+
+    Many workshop manifests carry no display_name (the real name lives in the
+    Steam metadata, which ETS2 mirrors into the profile's active_mods entry).
+    Chain: manifest name -> the profile's active display -> a fetched workshop
+    title -> the file stem as a last resort.
+    """
+    if mod.manifest is not None and mod.manifest.display_name:
+        return mod.manifest.display_name
+    profile_name = active_display_names.get(active_name_for(mod))
+    if profile_name:
+        return profile_name
+    if workshop_title:
+        return workshop_title
+    return mod.path.stem
+
+
 def active_name_for(mod: ScannedMod) -> str:
     """The name this mod takes in active_mods[] - inverse of lookup().
 

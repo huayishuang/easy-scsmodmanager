@@ -20,9 +20,12 @@ from easy_scsmodmanager.utils.i18n import t
 class ModInfoDialog(QDialog):
     """Read-only details for one mod: name, author, version, category, description."""
 
-    def __init__(self, mod: ScannedMod, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, mod: ScannedMod, parent: QWidget | None = None, *, display_name: str | None = None
+    ) -> None:
         super().__init__(parent)
         self._mod = mod
+        self._display_name_override = display_name
 
         self.setWindowTitle(t("dialog.info.title"))
         self.setMinimumSize(440, 360)
@@ -74,6 +77,8 @@ class ModInfoDialog(QDialog):
     # ------------------------------------------------------------------ #
 
     def _display_name(self) -> str:
+        if self._display_name_override:
+            return self._display_name_override
         if self._mod.manifest is not None and self._mod.manifest.display_name:
             return self._mod.manifest.display_name
         return self._mod.path.stem

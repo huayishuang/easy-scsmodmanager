@@ -57,6 +57,7 @@ class ModCard(QFrame):
         is_active: bool = False,
         icon_bytes: bytes | None = None,
         is_favorite: bool = False,
+        display_name: str | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -64,6 +65,7 @@ class ModCard(QFrame):
         self._is_active = is_active
         self._is_favorite = is_favorite
         self._is_selected = False
+        self._display_name_override = display_name
 
         self.setObjectName("ModCard")
         self.setFixedSize(QSize(Theme.MOD_CARD_WIDTH, Theme.MOD_CARD_HEIGHT))
@@ -257,6 +259,8 @@ class ModCard(QFrame):
         }.get(kind, t("status.inactive"))
 
     def _display_name(self) -> str:
+        if self._display_name_override:
+            return self._display_name_override
         if self._mod.manifest is not None and self._mod.manifest.display_name:
             return self._mod.manifest.display_name
         return self._mod.path.stem

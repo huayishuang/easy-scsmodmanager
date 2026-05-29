@@ -40,6 +40,7 @@ from easy_scsmodmanager.core.game_paths import Game, GameInstall, detect_game_in
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
+    resolve_display_name,
     workshop_id_for_path,
 )
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
@@ -304,6 +305,7 @@ class MainWindow(QMainWindow):
             filtered,
             active_names=self._active_names_set(),
             icon_for=self._icon_for,
+            name_for=self._display_name_for,
         )
 
     def _refresh_active_list(self) -> None:
@@ -336,6 +338,19 @@ class MainWindow(QMainWindow):
         if match is None:
             return None
         return self._icon_for(match)
+
+    def _active_display_map(self) -> dict[str, str]:
+        if self._profile is None:
+            return {}
+        return {a.name: a.display_name for a in self._profile.active_mods if a.display_name}
+
+    def _display_name_for(self, mod: ScannedMod) -> str:
+        title = None
+        wid = workshop_id_for_path(mod.path)
+        if wid is not None:
+            meta = self._workshop_cache.get(wid)
+            title = meta.title if meta else None
+        return resolve_display_name(mod, self._active_display_map(), workshop_title=title)
 
     def _active_names_set(self) -> set[str]:
         """The active_mods names referenced by the profile.
@@ -395,7 +410,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(t("status_bar.selection", count=len(mods)))
 
     def _on_mod_info_requested(self, mod: ScannedMod) -> None:
-        ModInfoDialog(mod, parent=self).exec()
+        ModInfoDialog(mod, parent=self, display_name=self._display_name_for(mod)).exec()
 
     def _on_active_order_changed(self) -> None:
         self._save_btn.setEnabled(True)
@@ -403,8 +418,9 @@ class MainWindow(QMainWindow):
 
     def _on_mod_activated(self, mod: ScannedMod) -> None:
         # double-click in the grid puts the mod at the top of the active list
-        display = mod.manifest.display_name if mod.manifest else mod.path.stem
-        self._active_list.move_to_top(ActiveMod(name=active_name_for(mod), display_name=display))
+        self._active_list.move_to_top(
+            ActiveMod(name=active_name_for(mod), display_name=self._display_name_for(mod))
+        )
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:
@@ -459,7 +475,10 @@ class MainWindow(QMainWindow):
             entry = self._cache.get(mod.path)
             has_icon = bool(entry and entry.icon_bytes)
             has_manifest = mod.manifest is not None
-            if has_icon and has_manifest:
+            # also fetch when we still have no real name (workshop mods whose
+            # manifest carries no display_name and that aren't in the profile)
+            has_name = self._display_name_for(mod) != mod.path.stem
+            if has_icon and has_manifest and has_name:
                 continue
             seen.add(wid)
             workshop_ids.append(wid)

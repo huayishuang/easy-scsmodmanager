@@ -114,3 +114,49 @@ def test_active_name_for_workshop_round_trips_through_extractor() -> None:
 
     name = active_name_for(mod)
     assert _extract_workshop_id_from_name(name) == "977853202"
+
+
+def test_resolve_display_name_prefers_manifest_name() -> None:
+    from easy_scsmodmanager.services.mod_matching import resolve_display_name
+
+    mod = _scanned(Path("/mod/foo.scs"), "Real Name")
+    assert resolve_display_name(mod, {}) == "Real Name"
+
+
+def test_resolve_display_name_uses_profile_active_display() -> None:
+    from easy_scsmodmanager.services.mod_matching import active_name_for, resolve_display_name
+
+    mod = _scanned(
+        Path("/games/SteamLib/steamapps/workshop/content/227300/111/universal.scs"), None
+    )
+    names = {active_name_for(mod): "Ford Trucks F-MAX"}
+    assert resolve_display_name(mod, names) == "Ford Trucks F-MAX"
+
+
+def test_resolve_display_name_treats_empty_manifest_name_as_missing() -> None:
+    from easy_scsmodmanager.services.mod_matching import active_name_for, resolve_display_name
+
+    mod = ScannedMod(
+        path=Path("/games/SteamLib/steamapps/workshop/content/227300/111/universal"),
+        format=ScsFormat.UNKNOWN,
+        manifest=ModManifest(display_name="", author="Momo"),
+        error=None,
+    )
+    names = {active_name_for(mod): "Profile Name"}
+    assert resolve_display_name(mod, names) == "Profile Name"
+
+
+def test_resolve_display_name_uses_workshop_title_when_inactive() -> None:
+    from easy_scsmodmanager.services.mod_matching import resolve_display_name
+
+    mod = _scanned(
+        Path("/games/SteamLib/steamapps/workshop/content/227300/111/universal.scs"), None
+    )
+    assert resolve_display_name(mod, {}, workshop_title="Cool Workshop Mod") == "Cool Workshop Mod"
+
+
+def test_resolve_display_name_final_fallback_is_stem() -> None:
+    from easy_scsmodmanager.services.mod_matching import resolve_display_name
+
+    mod = _scanned(Path("/mod/some_local_mod.scs"), None)
+    assert resolve_display_name(mod, {}) == "some_local_mod"

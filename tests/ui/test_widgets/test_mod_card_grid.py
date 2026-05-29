@@ -198,3 +198,15 @@ def test_set_mods_active_state_does_not_confuse_workshop_stems(qtbot: QtBot) -> 
 
     assert grid.cards()[0].is_active is True
     assert grid.cards()[1].is_active is False
+
+
+def test_set_mods_name_for_overrides_card_display_name(qtbot: QtBot) -> None:
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+
+    grid.set_mods(
+        [_mod("ignored", path="/ws/227300/1/universal.scs")],
+        name_for=lambda m: "Resolved Title",
+    )
+
+    assert grid.cards()[0]._display_name() == "Resolved Title"
