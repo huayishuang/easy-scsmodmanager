@@ -66,3 +66,27 @@ def test_save_aborts_on_cancel(qtbot, tmp_path, monkeypatch) -> None:
 
     # nothing written - still zero active mods on disk
     assert list(read_profile(sii).active_mods) == []
+
+
+def test_double_click_grid_card_adds_mod_to_active_top(qtbot) -> None:
+    from pathlib import Path
+
+    from easy_scsmodmanager.core.models.mod_manifest import ModManifest
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    window._active_list.set_active_mods([ActiveMod("existing", "Existing")])
+
+    mod = ScannedMod(
+        path=Path("/mod/newmod.scs"),
+        format=ScsFormat.ZIP,
+        manifest=ModManifest(display_name="New Mod"),
+        error=None,
+    )
+    window._on_mod_activated(mod)
+
+    assert window._active_list.display_order()[0].name == "newmod"
+    assert window._save_btn.isEnabled() is True

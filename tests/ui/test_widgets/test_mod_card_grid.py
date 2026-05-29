@@ -169,3 +169,14 @@ def test_shift_click_selects_contiguous_range(qtbot: QtBot) -> None:
     grid._on_card_clicked(3, Qt.KeyboardModifier.ShiftModifier)
 
     assert [m.manifest.display_name for m in grid.selected_mods()] == ["M1", "M2", "M3"]
+
+
+def test_set_active_names_updates_card_active_state(qtbot: QtBot) -> None:
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+    grid.set_mods([_mod("Foo", path="/mod/foo.scs"), _mod("Bar", path="/mod/bar.scs")])
+
+    grid.set_active_names({"foo"})
+
+    assert grid.cards()[0].is_active is True
+    assert grid.cards()[1].is_active is False

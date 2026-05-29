@@ -39,6 +39,7 @@ from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import Game, GameInstall, detect_game_installs
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
+    active_name_for,
     workshop_id_for_path,
 )
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
@@ -149,6 +150,7 @@ class MainWindow(QMainWindow):
         self._grid = ModCardGrid(columns=Theme.MOD_GRID_COLUMNS)
         self._grid.selection_changed.connect(self._on_grid_selection_changed)
         self._grid.info_requested.connect(self._on_mod_info_requested)
+        self._grid.card_activated.connect(self._on_mod_activated)
         left_layout.addWidget(self._filter_toolbar)
         left_layout.addWidget(self._grid, 1)
 
@@ -402,6 +404,12 @@ class MainWindow(QMainWindow):
 
     def _on_active_order_changed(self) -> None:
         self._save_btn.setEnabled(True)
+        self._grid.set_active_names({m.name for m in self._active_list.display_order()})
+
+    def _on_mod_activated(self, mod: ScannedMod) -> None:
+        # double-click in the grid puts the mod at the top of the active list
+        display = mod.manifest.display_name if mod.manifest else mod.path.stem
+        self._active_list.move_to_top(ActiveMod(name=active_name_for(mod), display_name=display))
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:

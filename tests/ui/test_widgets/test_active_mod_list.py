@@ -74,3 +74,13 @@ def test_order_changed_emitted_on_mutation(qtbot: QtBot) -> None:
 
     with qtbot.waitSignal(w.order_changed, timeout=500):
         w.remove_mod(ActiveMod("a", "A"))
+
+
+def test_double_click_removes_the_mod(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b", "c"])
+    top_item = w._list.item(0)  # display top = "c"
+
+    with qtbot.waitSignal(w.order_changed, timeout=500):
+        w._on_item_double_clicked(top_item)
+
+    assert "c" not in [m.name for m in w.display_order()]

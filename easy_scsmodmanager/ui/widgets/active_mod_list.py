@@ -132,7 +132,7 @@ class ActiveModList(QWidget):
         self._list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self._list.itemSelectionChanged.connect(self._on_selection_changed)
         self._list.itemClicked.connect(self._on_item_clicked)
-        self._list.itemActivated.connect(self._on_item_clicked)
+        self._list.itemDoubleClicked.connect(self._on_item_double_clicked)
         root.addWidget(self._list, 1)
 
         self._empty_hint = QLabel(t("active_panel.empty"))
@@ -174,6 +174,7 @@ class ActiveModList(QWidget):
         self._mods = [m for m in self._mods if m.name != mod.name]
         self._mods.insert(0, mod)
         self._rerender()
+        self._list.scrollToTop()
         self.order_changed.emit()
 
     def insert_mods(self, mods: list[ActiveMod], at: int) -> None:
@@ -225,6 +226,12 @@ class ActiveModList(QWidget):
         mod = item.data(Qt.ItemDataRole.UserRole)
         if mod is not None:
             self.mod_focus_requested.emit(mod)
+
+    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
+        # double-click pulls the mod out of the active list
+        mod = item.data(Qt.ItemDataRole.UserRole)
+        if mod is not None:
+            self.remove_mod(mod)
 
 
 def _format_label(mod: ActiveMod) -> str:

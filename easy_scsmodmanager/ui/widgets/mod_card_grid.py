@@ -13,6 +13,7 @@ from collections.abc import Callable, Iterable
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QGridLayout, QScrollArea, QSizePolicy, QWidget
 
+from easy_scsmodmanager.services.mod_matching import active_name_for
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.widgets.mod_card import ModCard
@@ -83,6 +84,11 @@ class ModCardGrid(QScrollArea):
 
     def cards(self) -> list[ModCard]:
         return list(self._cards)
+
+    def set_active_names(self, active_names: set[str]) -> None:
+        """Recolour cards to reflect which mods are currently active."""
+        for card in self._cards:
+            card.set_active(active_name_for(card.mod) in active_names)
 
     def selected_mods(self) -> list[ScannedMod]:
         return [self._cards[i].mod for i in sorted(self._selected)]
