@@ -121,3 +121,38 @@ def test_save_active_mods_can_skip_backup(tmp_path: Path) -> None:
     assert entry is None
     assert not backup_root.exists()
     assert [m.name for m in read_profile(sii).active_mods] == ["solo"]
+
+
+def test_reorder_preserves_escaped_quotes_in_display(tmp_path: Path) -> None:
+    # regression: a display with escaped quotes must survive a reorder and
+    # re-parse cleanly instead of corrupting the profile
+    text = (
+        "SiiNunit\n{\nuser_profile : x {\n"
+        " active_mods: 2\n"
+        ' active_mods[0]: "a|Plain Mod"\n'
+        ' active_mods[1]: "b|Truck \\"Kelsa Kit\\" Pack"\n'
+        "}\n}\n"
+    )
+    mods = [ActiveMod("b", 'Truck "Kelsa Kit" Pack'), ActiveMod("a", "Plain Mod")]
+
+    out = replace_active_mods(text, mods)
+    sii = tmp_path / "profiles" / "x" / "profile.sii"
+    sii.parent.mkdir(parents=True)
+    sii.write_text(out, encoding="utf-8")
+
+    profile = read_profile(sii)  # must not raise
+    assert [m.name for m in profile.active_mods] == ["b", "a"]
+    assert '\\"Kelsa Kit\\"' in out  # original escaping preserved verbatim
+
+
+def test_new_entry_escapes_quotes_and_backslashes(tmp_path: Path) -> None:
+    text = "SiiNunit\n{\nuser_profile : x {\n active_mods: 0\n}\n}\n"
+    mods = [ActiveMod("new", 'Has "Quote" and \\ slash')]
+
+    out = replace_active_mods(text, mods)
+    sii = tmp_path / "profiles" / "x" / "profile.sii"
+    sii.parent.mkdir(parents=True)
+    sii.write_text(out, encoding="utf-8")
+
+    profile = read_profile(sii)  # must not raise
+    assert profile.active_mods[0].name == "new"

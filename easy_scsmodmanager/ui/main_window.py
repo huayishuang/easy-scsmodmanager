@@ -462,12 +462,12 @@ class MainWindow(QMainWindow):
                 self._active_list.ordered_active_mods(),
                 backup=backup,
             )
+            # reload from disk so the in-memory profile matches what we wrote
+            self._profile = read_profile(self._profile_sii_path)
         except Exception as exc:
             log.warning("save failed for %s: %s", self._profile_sii_path, exc)
             self.statusBar().showMessage(t("status_bar.save_failed", error=str(exc)))
             return
-        # reload from disk so the in-memory profile matches what we wrote
-        self._profile = read_profile(self._profile_sii_path)
         self._profile_choices = [
             (s, self._profile if s == self._profile_sii_path else p)
             for s, p in self._profile_choices
