@@ -200,7 +200,7 @@ class ActiveModList(QWidget):
         self._list.setDefaultDropAction(Qt.DropAction.MoveAction)
         self._list.setDropIndicatorShown(True)  # the line showing where it lands
         self._list.setAutoScroll(True)  # scroll when dragging near the edges
-        self._list.setAutoScrollMargin(48)
+        self._list.setAutoScrollMargin(140)  # generous edge zone (~3x default)
         self._list.reorder_requested.connect(self.move_rows)
         self._list.external_drop_requested.connect(self.mods_dropped.emit)
         self._list.setStyleSheet(f"""
