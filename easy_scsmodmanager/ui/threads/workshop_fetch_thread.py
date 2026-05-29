@@ -14,6 +14,8 @@ signal so the GUI can refresh the visible cards incrementally.
 from __future__ import annotations
 
 import logging
+import sqlite3
+from pathlib import Path
 
 import httpx
 from PyQt6.QtCore import QThread, pyqtSignal
@@ -47,30 +49,38 @@ class WorkshopFetchThread(QThread):
     def __init__(
         self,
         workshop_ids: list[str],
-        cache: WorkshopMetaCache,
+        db_path: Path,
     ) -> None:
         super().__init__()
         self._ids = list(dict.fromkeys(workshop_ids))  # deduplicate, preserve order
-        self._cache = cache
+        self._db_path = db_path
 
     def run(self) -> None:  # noqa: D401
         if not self._ids:
             self.finished_with_summary.emit(0)
             return
 
+        # own connection: a sqlite connection must not be used concurrently
+        # from two threads (the GUI reads the same db while we write)
+        conn = sqlite3.connect(str(self._db_path), check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout = 5000")
+        cache = WorkshopMetaCache(conn)
         try:
             with httpx.Client(timeout=20.0) as client:
-                self._fetch_metadata_phase(client)
-                downloaded = self._fetch_preview_phase(client)
+                self._fetch_metadata_phase(client, cache)
+                downloaded = self._fetch_preview_phase(client, cache)
         except Exception as exc:  # pragma: no cover - defensive
             log.exception("workshop fetch failed: %s", exc)
             self.finished_with_summary.emit(0)
             return
+        finally:
+            conn.close()
         self.finished_with_summary.emit(downloaded)
 
-    def _fetch_metadata_phase(self, client: httpx.Client) -> None:
+    def _fetch_metadata_phase(self, client: httpx.Client, cache: WorkshopMetaCache) -> None:
         # Skip ids we have already enriched in this database.
-        cached = self._cache.get_many(self._ids)
+        cached = cache.get_many(self._ids)
         missing = [wid for wid in self._ids if wid not in cached]
         if not missing:
             self.metadata_fetched.emit(0)
@@ -78,7 +88,7 @@ class WorkshopFetchThread(QThread):
 
         items = fetch_metadata(missing, client=client)
         for wid, item in items.items():
-            self._cache.put_metadata(
+            cache.put_metadata(
                 wid,
                 title=item.title,
                 description=item.description,
@@ -87,8 +97,8 @@ class WorkshopFetchThread(QThread):
             )
         self.metadata_fetched.emit(len(items))
 
-    def _fetch_preview_phase(self, client: httpx.Client) -> int:
-        needs_preview = self._cache.workshop_ids_without_preview(self._ids)
+    def _fetch_preview_phase(self, client: httpx.Client, cache: WorkshopMetaCache) -> int:
+        needs_preview = cache.workshop_ids_without_preview(self._ids)
         if not needs_preview:
             return 0
 
@@ -96,13 +106,13 @@ class WorkshopFetchThread(QThread):
         # Fetch one-by-one so the UI can refresh incrementally and a
         # single dead URL does not abort the run.
         for wid in needs_preview:
-            entry = self._cache.get(wid)
+            entry = cache.get(wid)
             if entry is None or not entry.preview_url:
                 continue
             payload = fetch_preview_image(entry.preview_url, client=client)
             if not payload:
                 continue
-            self._cache.put_preview_bytes(wid, payload)
+            cache.put_preview_bytes(wid, payload)
             downloaded += 1
             self.preview_fetched.emit(wid)
         return downloaded

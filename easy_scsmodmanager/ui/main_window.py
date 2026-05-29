@@ -508,7 +508,7 @@ class MainWindow(QMainWindow):
         if not workshop_ids:
             return
 
-        self._workshop_thread = WorkshopFetchThread(workshop_ids, self._workshop_cache)
+        self._workshop_thread = WorkshopFetchThread(workshop_ids, self._cache.path)
         self._workshop_thread.preview_fetched.connect(self._on_workshop_preview_ready)
         self._workshop_thread.finished_with_summary.connect(self._on_workshop_fetch_done)
         self._workshop_thread.start()

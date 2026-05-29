@@ -139,6 +139,12 @@ class ScanCache:
         metadata, future icon variants) can share it."""
         return self._conn
 
+    @property
+    def path(self) -> Path:
+        """The database file path - for opening a separate connection on
+        another thread (a sqlite connection must not be shared concurrently)."""
+        return self._db_path
+
     def close(self) -> None:
         with contextlib.suppress(sqlite3.ProgrammingError):
             self._conn.close()
