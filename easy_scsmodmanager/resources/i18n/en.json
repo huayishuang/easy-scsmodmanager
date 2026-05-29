@@ -76,6 +76,14 @@
   "status_bar.restore_done": "Restored from backup {label}.",
   "status_bar.restore_failed": "Restore failed: {reason}",
 
+  "dialog.info.title": "Mod details",
+  "dialog.info.author": "Author",
+  "dialog.info.version": "Version",
+  "dialog.info.category": "Category",
+  "dialog.info.description": "Description",
+  "dialog.info.no_description": "No description available.",
+  "dialog.info.close": "Close",
+
   "dialog.restore.title": "Restore profile",
   "dialog.restore.header": "{count} backup(s) for profile '{profile}'",
   "dialog.restore.warning": "Warning: ETS2 must NOT be running. The game would overwrite the restored profile.sii when it exits.",

@@ -76,6 +76,14 @@
   "status_bar.restore_done": "Wiederhergestellt aus Backup vom {label}.",
   "status_bar.restore_failed": "Wiederherstellung fehlgeschlagen: {reason}",
 
+  "dialog.info.title": "Mod-Details",
+  "dialog.info.author": "Ersteller",
+  "dialog.info.version": "Version",
+  "dialog.info.category": "Kategorie",
+  "dialog.info.description": "Beschreibung",
+  "dialog.info.no_description": "Keine Beschreibung vorhanden.",
+  "dialog.info.close": "Schliessen",
+
   "dialog.restore.title": "Profil wiederherstellen",
   "dialog.restore.header": "{count} Backup(s) fuer Profil '{profile}'",
   "dialog.restore.warning": "Achtung: ETS2 darf jetzt NICHT laufen. Das Spiel ueberschreibt sonst beim Beenden die wiederhergestellte profile.sii.",

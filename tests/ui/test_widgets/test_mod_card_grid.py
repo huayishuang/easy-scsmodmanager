@@ -115,3 +115,16 @@ def test_double_click_emits_card_activated_with_mod(qtbot: QtBot) -> None:
         grid._on_card_activated(0)
 
     assert sig.args[0].manifest.display_name == "Demo"
+
+
+def test_info_requested_relays_the_mod(qtbot: QtBot) -> None:
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+    mod = _mod("Detailed")
+    grid.set_mods([mod])
+
+    captured: list[ScannedMod] = []
+    grid.info_requested.connect(captured.append)
+    grid.cards()[0].info_requested.emit()
+
+    assert captured == [mod]

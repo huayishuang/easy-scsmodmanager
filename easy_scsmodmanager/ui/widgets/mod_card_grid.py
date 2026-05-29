@@ -23,6 +23,7 @@ class ModCardGrid(QScrollArea):
 
     selection_changed = pyqtSignal(list)  # list[ScannedMod]
     card_activated = pyqtSignal(object)  # ScannedMod
+    info_requested = pyqtSignal(object)  # ScannedMod
 
     def __init__(self, columns: int = 3, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -72,6 +73,7 @@ class ModCardGrid(QScrollArea):
             idx = len(self._cards)
             card.clicked.connect(lambda i=idx: self._on_card_clicked(i))
             card.activated.connect(lambda i=idx: self._on_card_activated(i))
+            card.info_requested.connect(lambda m=mod: self.info_requested.emit(m))
             self._cards.append(card)
             self._grid.addWidget(card, i // self._columns, i % self._columns)
         # Push the cards top-left, do not let the grid stretch them.

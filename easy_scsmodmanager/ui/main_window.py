@@ -48,6 +48,7 @@ from easy_scsmodmanager.services.profile_reader import (
     discover_profiles,
     read_profile,
 )
+from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
 from easy_scsmodmanager.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.threads.scan_thread import ScanResult, ScanThread
@@ -141,6 +142,7 @@ class MainWindow(QMainWindow):
         self._filter_toolbar.filter_changed.connect(self._on_filter_changed)
         self._grid = ModCardGrid(columns=Theme.MOD_GRID_COLUMNS)
         self._grid.selection_changed.connect(self._on_grid_selection_changed)
+        self._grid.info_requested.connect(self._on_mod_info_requested)
         left_layout.addWidget(self._filter_toolbar)
         left_layout.addWidget(self._grid, 1)
 
@@ -379,6 +381,9 @@ class MainWindow(QMainWindow):
             self.statusBar().clearMessage()
             return
         self.statusBar().showMessage(t("status_bar.selection", count=len(mods)))
+
+    def _on_mod_info_requested(self, mod: ScannedMod) -> None:
+        ModInfoDialog(mod, parent=self).exec()
 
     def _kickoff_workshop_fetch(self) -> None:
         """Start the Steam Workshop fetcher for mods we lack local data for.
