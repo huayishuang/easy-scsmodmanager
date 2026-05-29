@@ -22,6 +22,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from easy_scsmodmanager.integrations.sii.crypto import decrypt_scsc, encrypt_scsc, is_scsc
+from easy_scsmodmanager.services.profile_backup import BackupEntry, create_backup
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 
 _COUNT_RE = re.compile(r"^(\s*)active_mods\s*:\s*\d+\s*$")
@@ -66,6 +67,23 @@ def write_active_mods(profile_sii_path: Path, mods: Sequence[ActiveMod]) -> None
     out_bytes = encrypt_scsc(payload) if encrypted else payload
 
     _atomic_write(profile_sii_path, out_bytes)
+
+
+def save_active_mods(
+    profile_sii_path: Path,
+    mods: Sequence[ActiveMod],
+    *,
+    backup: bool = True,
+    backup_root: Path | None = None,
+) -> BackupEntry | None:
+    """Optionally back up the profile, then write the new active list.
+
+    Returns the BackupEntry when a backup was made, else None. The backup
+    captures the pre-edit profile, so one is always recoverable.
+    """
+    entry = create_backup(profile_sii_path, root=backup_root) if backup else None
+    write_active_mods(profile_sii_path, mods)
+    return entry
 
 
 def _atomic_write(target: Path, data: bytes) -> None:

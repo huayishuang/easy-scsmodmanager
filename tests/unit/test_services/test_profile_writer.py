@@ -89,3 +89,35 @@ def test_write_active_mods_keeps_scsc_encryption(tmp_path: Path) -> None:
     assert b"enc|Encrypted Mod" in decrypt_scsc(raw)
     profile = read_profile(sii)
     assert [m.name for m in profile.active_mods] == ["enc"]
+
+
+def test_save_active_mods_backs_up_then_writes(tmp_path: Path) -> None:
+    from easy_scsmodmanager.services.profile_writer import save_active_mods
+
+    sii = tmp_path / "profiles" / "abc" / "profile.sii"
+    sii.parent.mkdir(parents=True)
+    sii.write_text(PROFILE_TEMPLATE, encoding="utf-8")
+    backup_root = tmp_path / "backups"
+
+    entry = save_active_mods(sii, [ActiveMod("new", "New")], backup=True, backup_root=backup_root)
+
+    assert [m.name for m in read_profile(sii).active_mods] == ["new"]
+    assert entry is not None
+    assert entry.path.is_file()
+
+
+def test_save_active_mods_can_skip_backup(tmp_path: Path) -> None:
+    from easy_scsmodmanager.services.profile_writer import save_active_mods
+
+    sii = tmp_path / "profiles" / "abc" / "profile.sii"
+    sii.parent.mkdir(parents=True)
+    sii.write_text(PROFILE_TEMPLATE, encoding="utf-8")
+    backup_root = tmp_path / "backups"
+
+    entry = save_active_mods(
+        sii, [ActiveMod("solo", "Solo")], backup=False, backup_root=backup_root
+    )
+
+    assert entry is None
+    assert not backup_root.exists()
+    assert [m.name for m in read_profile(sii).active_mods] == ["solo"]
