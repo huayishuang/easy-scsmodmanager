@@ -10,6 +10,7 @@ from easy_scsmodmanager.integrations.sii.crypto import (
     SCS_KEY,
     SCSC_MAGIC,
     decrypt_scsc,
+    encrypt_scsc,
     is_scsc,
 )
 
@@ -52,3 +53,28 @@ def test_decrypt_scsc_raises_for_wrong_magic() -> None:
 def test_decrypt_scsc_raises_for_truncated_header() -> None:
     with pytest.raises(ValueError):
         decrypt_scsc(b"ScsC" + b"\x00" * 4)
+
+
+def test_encrypt_scsc_round_trips_through_decrypt() -> None:
+    plaintext = b"SiiNunit\n{\nuser_profile : x {\nactive_mods: 0\n}\n}\n"
+
+    blob = encrypt_scsc(plaintext)
+
+    assert is_scsc(blob)
+    assert decrypt_scsc(blob) == plaintext
+
+
+def test_encrypt_scsc_zeroes_the_hmac() -> None:
+    blob = encrypt_scsc(b"anything")
+
+    assert blob[0x04:0x24] == b"\x00" * 32
+
+
+def test_encrypt_scsc_is_deterministic_with_a_fixed_iv() -> None:
+    iv = b"\x22" * 16
+
+    first = encrypt_scsc(b"payload", iv=iv)
+    second = encrypt_scsc(b"payload", iv=iv)
+
+    assert first == second
+    assert first[0x24:0x34] == iv

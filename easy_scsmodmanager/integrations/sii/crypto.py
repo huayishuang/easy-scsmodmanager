@@ -1,15 +1,14 @@
-"""Decrypts ScsC-encrypted SII files (profile.sii etc).
+"""Decrypts and re-encrypts ScsC SII files (profile.sii etc).
 
-SCS Software encrypts the user's profile and a few other writeable SII
-files with AES-256-CBC plus zlib compression. The key is publicly known
-and ships in every game install. We only ever read with it - the writer
-side stays out of this module.
+SCS Software stores the user's profile and a few other writeable SII files
+with AES-256-CBC plus zlib compression. The key is publicly known and ships
+in every game install.
 
 Format (little-endian):
 
     Offset  Size  Field
     0x00    4     Magic "ScsC"
-    0x04    32    HMAC (ignored on read)
+    0x04    32    HMAC (ignored on read; the game accepts a zeroed one)
     0x24    16    AES IV
     0x34    4     Declared plaintext size (uint32)
     0x38    N     Ciphertext (AES-CBC, zero-padded)
@@ -17,6 +16,7 @@ Format (little-endian):
 
 from __future__ import annotations
 
+import os
 import struct
 import zlib
 
@@ -51,3 +51,24 @@ def decrypt_scsc(data: bytes) -> bytes:
         pass
 
     return plaintext
+
+
+def encrypt_scsc(plaintext: bytes, iv: bytes | None = None) -> bytes:
+    """Inverse of :func:`decrypt_scsc`.
+
+    zlib-compress, zero-pad to the AES block, AES-256-CBC encrypt, and wrap
+    in the ScsC header. The HMAC is left zeroed - the game does not verify it
+    (same as the reference sii_encrypt tool). ``iv`` is only injectable for
+    deterministic tests; production passes None for a random IV.
+    """
+    compressed = zlib.compress(plaintext, level=9)
+    pad = (-len(compressed)) % 16
+    padded = compressed + b"\x00" * pad
+
+    if iv is None:
+        iv = os.urandom(16)
+    cipher = AES.new(SCS_KEY, AES.MODE_CBC, iv)
+    ciphertext = cipher.encrypt(padded)
+
+    hmac = b"\x00" * 32
+    return SCSC_MAGIC + hmac + iv + struct.pack("<I", len(plaintext)) + ciphertext
