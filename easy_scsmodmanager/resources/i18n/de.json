@@ -50,6 +50,9 @@
   "active_panel.priority_down": "Niedriger",
   "active_panel.priority_top": "An die Spitze",
   "active_panel.priority_bottom": "Ans Ende",
+  "active_panel.save": "Speichern",
+  "dialog.save.title": "Aktive Mods speichern",
+  "dialog.save.body": "Vor dem Speichern ein Backup des Profils anlegen?\n\nAchtung: ETS2 darf jetzt NICHT laufen - das Spiel ueberschreibt die profile.sii sonst beim Beenden.",
 
   "profile_header.no_profile": "(kein Profil geladen)",
   "profile_header.level": "Level {level}",
@@ -68,6 +71,8 @@
   "status_bar.scan_done": "{total} Mods geladen ({active} aktiv, {errors} Fehler) in {elapsed:.1f}s",
   "status_bar.no_install": "Kein Game-Install gefunden. Pruefe Einstellungen.",
   "status_bar.selection": "{count} ausgewaehlt",
+  "status_bar.saved": "Profil gespeichert",
+  "status_bar.save_failed": "Speichern fehlgeschlagen: {error}",
   "status_bar.active_not_on_disk": "'{name}' ist im Profil aktiv aber nicht auf der Platte gefunden.",
   "status_bar.workshop_fetched": "{count} Workshop-Vorschau-Bilder aus Steam geladen.",
   "status_bar.backup_created": "Backup angelegt: {label}",

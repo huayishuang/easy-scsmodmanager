@@ -24,8 +24,10 @@ from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
+    QHBoxLayout,
     QMainWindow,
     QMessageBox,
+    QPushButton,
     QSplitter,
     QVBoxLayout,
     QWidget,
@@ -35,7 +37,10 @@ from easy_scsmodmanager import __app_name__, __version__
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import Game, GameInstall, detect_game_installs
-from easy_scsmodmanager.services.mod_matching import ActiveModMatcher, workshop_id_for_path
+from easy_scsmodmanager.services.mod_matching import (
+    ActiveModMatcher,
+    workshop_id_for_path,
+)
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.services.profile_backup import (
     create_backup,
@@ -48,6 +53,7 @@ from easy_scsmodmanager.services.profile_reader import (
     discover_profiles,
     read_profile,
 )
+from easy_scsmodmanager.services.profile_writer import save_active_mods
 from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
 from easy_scsmodmanager.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
 from easy_scsmodmanager.ui.theme import Theme
@@ -156,8 +162,17 @@ class MainWindow(QMainWindow):
         self._profile_header.restore_requested.connect(self._on_restore_requested)
         self._active_list = ActiveModList()
         self._active_list.mod_focus_requested.connect(self._on_active_mod_focus)
+        self._active_list.order_changed.connect(self._on_active_order_changed)
         right_layout.addWidget(self._profile_header)
         right_layout.addWidget(self._active_list, 1)
+
+        save_row = QHBoxLayout()
+        save_row.addStretch(1)
+        self._save_btn = QPushButton(t("active_panel.save"))
+        self._save_btn.setEnabled(False)
+        self._save_btn.clicked.connect(self._on_save_clicked)
+        save_row.addWidget(self._save_btn)
+        right_layout.addLayout(save_row)
 
         splitter.addWidget(left)
         splitter.addWidget(right)
@@ -384,6 +399,43 @@ class MainWindow(QMainWindow):
 
     def _on_mod_info_requested(self, mod: ScannedMod) -> None:
         ModInfoDialog(mod, parent=self).exec()
+
+    def _on_active_order_changed(self) -> None:
+        self._save_btn.setEnabled(True)
+
+    def _on_save_clicked(self) -> None:
+        if self._profile_sii_path is None:
+            return
+        choice = QMessageBox.question(
+            self,
+            t("dialog.save.title"),
+            t("dialog.save.body"),
+            QMessageBox.StandardButton.Yes
+            | QMessageBox.StandardButton.No
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Yes,
+        )
+        if choice == QMessageBox.StandardButton.Cancel:
+            return
+        backup = choice == QMessageBox.StandardButton.Yes
+        try:
+            save_active_mods(
+                self._profile_sii_path,
+                self._active_list.ordered_active_mods(),
+                backup=backup,
+            )
+        except Exception as exc:
+            log.warning("save failed for %s: %s", self._profile_sii_path, exc)
+            self.statusBar().showMessage(t("status_bar.save_failed", error=str(exc)))
+            return
+        # reload from disk so the in-memory profile matches what we wrote
+        self._profile = read_profile(self._profile_sii_path)
+        self._profile_choices = [
+            (s, self._profile if s == self._profile_sii_path else p)
+            for s, p in self._profile_choices
+        ]
+        self._save_btn.setEnabled(False)
+        self.statusBar().showMessage(t("status_bar.saved"))
 
     def _kickoff_workshop_fetch(self) -> None:
         """Start the Steam Workshop fetcher for mods we lack local data for.
