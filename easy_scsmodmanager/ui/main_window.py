@@ -238,6 +238,7 @@ class MainWindow(QMainWindow):
                 if profile is not None
                 else ""
             ),
+            restorable=True,  # we have a path; restore works even if it won't parse
         )
         self._refresh_profile_choices_menu()
 

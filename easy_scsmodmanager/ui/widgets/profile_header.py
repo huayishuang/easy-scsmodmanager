@@ -128,6 +128,7 @@ class ProfileHeader(QWidget):
         *,
         avatar_path: Path | None = None,
         meta_text: str = "",
+        restorable: bool = False,
     ) -> None:
         self._profile = profile
 
@@ -136,7 +137,8 @@ class ProfileHeader(QWidget):
             self._meta_label.setText("")
             self._avatar.clear()
             self._backup_btn.setEnabled(False)
-            self._restore_btn.setEnabled(False)
+            # a corrupt/unreadable profile still has a path to restore from
+            self._restore_btn.setEnabled(restorable)
             return
 
         self._name_label.setText(profile.profile_name or profile.dir_name)

@@ -154,3 +154,16 @@ def test_restore_reachable_when_profile_failed_to_parse(qtbot, tmp_path, monkeyp
 
     # reached the "no backups" branch (status set) instead of silently returning
     assert window.statusBar().currentMessage() != ""
+
+
+def test_restore_button_enabled_for_corrupt_active_profile(qtbot, tmp_path) -> None:
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    sii = tmp_path / "profiles" / "abc" / "profile.sii"
+    sii.parent.mkdir(parents=True)
+    window._profile_choices = [(sii, None)]  # parsed to None (corrupt)
+
+    window._activate_profile(sii)
+
+    assert window._profile_header._restore_btn.isEnabled() is True
+    assert window._profile_header._backup_btn.isEnabled() is False
