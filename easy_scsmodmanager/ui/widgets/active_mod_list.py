@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from PyQt6.QtCore import QSize, Qt, pyqtSignal
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPixmap
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -30,6 +30,10 @@ THUMB_SIZE = QSize(Theme.ACTIVE_THUMBNAIL_WIDTH, Theme.ACTIVE_THUMBNAIL_HEIGHT)
 # carried by a drag coming from the mod grid: newline-joined mod path strings
 MOD_DRAG_MIME = "application/x-escsmm-modpaths"
 
+# gentle animated wheel scrolling for the tall active rows
+WHEEL_STEP_PX = 80
+WHEEL_DURATION_MS = 200
+
 
 class _ActiveListView(QListWidget):
     """List view that turns drops into model-level reorder / insert signals.
@@ -42,6 +46,28 @@ class _ActiveListView(QListWidget):
 
     reorder_requested = pyqtSignal(list, int)  # (source rows, target row)
     external_drop_requested = pyqtSignal(list, int)  # (mod path strings, target row)
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
+        self._wheel_anim = QPropertyAnimation(self.verticalScrollBar(), b"value", self)
+        self._wheel_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._wheel_anim.setDuration(WHEEL_DURATION_MS)
+
+    def wheelEvent(self, event: object) -> None:  # noqa: N802
+        notches = event.angleDelta().y() / 120.0  # type: ignore[attr-defined]
+        if not notches:  # touchpad pixel-scroll: let Qt handle it natively
+            super().wheelEvent(event)
+            return
+        bar = self.verticalScrollBar()
+        running = self._wheel_anim.state() == QPropertyAnimation.State.Running
+        base = self._wheel_anim.endValue() if running else bar.value()
+        target = max(bar.minimum(), min(bar.maximum(), int(base - notches * WHEEL_STEP_PX)))
+        self._wheel_anim.stop()
+        self._wheel_anim.setStartValue(bar.value())
+        self._wheel_anim.setEndValue(target)
+        self._wheel_anim.start()
+        event.accept()  # type: ignore[attr-defined]
 
     def _target_row(self, event: object) -> int:
         pos = event.position().toPoint()  # type: ignore[attr-defined]
