@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from easy_scsmodmanager.integrations.sii.crypto import decrypt_scsc, encrypt_scsc, is_scsc
+from easy_scsmodmanager.integrations.sii.crypto import encrypt_scsc, is_scsc
 from easy_scsmodmanager.services.profile_reader import ActiveMod, read_profile
 from easy_scsmodmanager.services.profile_writer import replace_active_mods, write_active_mods
 
@@ -77,7 +77,10 @@ def test_write_active_mods_to_plaintext_profile(tmp_path: Path) -> None:
     assert [m.name for m in profile.active_mods] == ["new1", "new2"]
 
 
-def test_write_active_mods_keeps_scsc_encryption(tmp_path: Path) -> None:
+def test_write_active_mods_outputs_plaintext_even_for_scsc_input(tmp_path: Path) -> None:
+    # ETS2 validates the HMAC of an encrypted profile.sii and falls back to
+    # profile.bak.sii when it fails - which it does for our zeroed HMAC. So
+    # we always write plaintext (SiiNunit), which ETS2 reads without a check.
     sii = tmp_path / "profiles" / "abc" / "profile.sii"
     sii.parent.mkdir(parents=True)
     sii.write_bytes(encrypt_scsc(PROFILE_TEMPLATE.encode("utf-8")))
@@ -85,8 +88,8 @@ def test_write_active_mods_keeps_scsc_encryption(tmp_path: Path) -> None:
     write_active_mods(sii, [ActiveMod("enc", "Encrypted Mod")])
 
     raw = sii.read_bytes()
-    assert is_scsc(raw)  # still encrypted
-    assert b"enc|Encrypted Mod" in decrypt_scsc(raw)
+    assert not is_scsc(raw)  # written as plaintext now
+    assert raw[:8] == b"SiiNunit"
     profile = read_profile(sii)
     assert [m.name for m in profile.active_mods] == ["enc"]
 

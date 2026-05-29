@@ -21,7 +21,7 @@ import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
-from easy_scsmodmanager.integrations.sii.crypto import decrypt_scsc, encrypt_scsc, is_scsc
+from easy_scsmodmanager.integrations.sii.crypto import decrypt_scsc, is_scsc
 from easy_scsmodmanager.integrations.sii.parser import parse_sii
 from easy_scsmodmanager.services.profile_backup import BackupEntry, create_backup
 from easy_scsmodmanager.services.profile_reader import ActiveMod
@@ -79,20 +79,24 @@ def replace_active_mods(text: str, mods: Sequence[ActiveMod]) -> str:
 
 
 def write_active_mods(profile_sii_path: Path, mods: Sequence[ActiveMod]) -> None:
-    """Rewrite the active list in ``profile.sii`` (format-preserving, atomic)."""
+    """Rewrite the active list in ``profile.sii`` (atomic).
+
+    Always writes plaintext SiiNunit, even when the input was ScsC-encrypted.
+    ETS2 validates the HMAC of an encrypted profile and falls back to
+    profile.bak.sii if it fails - which it does for an externally written one,
+    since the HMAC algorithm is not public. Plaintext profiles are read
+    without that check, so our changes actually take effect.
+    """
     raw = profile_sii_path.read_bytes()
-    encrypted = is_scsc(raw)
     # strict decode: never risk a lossy round-trip on the user's profile
-    text = (decrypt_scsc(raw) if encrypted else raw).decode("utf-8")
+    text = (decrypt_scsc(raw) if is_scsc(raw) else raw).decode("utf-8")
 
     new_text = replace_active_mods(text, mods)
-    # validate before touching disk: never overwrite a profile with text the
-    # parser would choke on (the game would reject it too)
+    # validate before touching disk: never overwrite with text the parser
+    # (and therefore the game) would choke on
     parse_sii(new_text)
-    payload = new_text.encode("utf-8")
-    out_bytes = encrypt_scsc(payload) if encrypted else payload
 
-    _atomic_write(profile_sii_path, out_bytes)
+    _atomic_write(profile_sii_path, new_text.encode("utf-8"))
 
 
 def save_active_mods(
