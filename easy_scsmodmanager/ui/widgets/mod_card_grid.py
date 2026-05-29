@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QGridLayout, QScrollArea, QSizePolicy, QWidget
 
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
@@ -30,6 +30,7 @@ class ModCardGrid(QScrollArea):
         self._columns = columns
         self._cards: list[ModCard] = []
         self._selected: set[int] = set()  # indices into self._cards
+        self._anchor: int | None = None  # last plain-clicked index, for shift-range
 
         self.setWidgetResizable(True)
         self.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -71,7 +72,7 @@ class ModCardGrid(QScrollArea):
                 icon_bytes=icon,
             )
             idx = len(self._cards)
-            card.clicked.connect(lambda i=idx: self._on_card_clicked(i))
+            card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
             card.activated.connect(lambda i=idx: self._on_card_activated(i))
             card.info_requested.connect(lambda m=mod: self.info_requested.emit(m))
             self._cards.append(card)
@@ -99,7 +100,7 @@ class ModCardGrid(QScrollArea):
         """
         for i, card in enumerate(self._cards):
             if card.mod.path == mod.path:
-                self._on_card_clicked(i)
+                self._on_card_clicked(i, Qt.KeyboardModifier.NoModifier)
                 self.ensureWidgetVisible(card)
                 return True
         return False
@@ -117,17 +118,43 @@ class ModCardGrid(QScrollArea):
                 widget.deleteLater()
         self._cards.clear()
         self._selected.clear()
+        self._anchor = None
 
-    def _on_card_clicked(self, index: int) -> None:
-        # Phase 2: single-click toggles a single-selection. Multi-select
-        # with Ctrl/Shift comes in Phase 3 together with drag-and-drop.
-        for i in list(self._selected):
-            if i != index:
-                self._cards[i].set_selected(False)
-        self._selected.clear()
-        self._cards[index].set_selected(True)
-        self._selected.add(index)
+    def _on_card_clicked(self, index: int, modifiers: Qt.KeyboardModifier) -> None:
+        ctrl = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+        shift = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
+
+        if ctrl:
+            self._toggle(index)
+            self._anchor = index
+        elif shift and self._anchor is not None:
+            self._select_range(self._anchor, index)
+        else:
+            self._set_single(index)
+            self._anchor = index
         self.selection_changed.emit(self.selected_mods())
+
+    def _set_single(self, index: int) -> None:
+        for i in list(self._selected):
+            self._cards[i].set_selected(False)
+        self._selected = {index}
+        self._cards[index].set_selected(True)
+
+    def _toggle(self, index: int) -> None:
+        if index in self._selected:
+            self._selected.discard(index)
+            self._cards[index].set_selected(False)
+        else:
+            self._selected.add(index)
+            self._cards[index].set_selected(True)
+
+    def _select_range(self, start: int, end: int) -> None:
+        lo, hi = sorted((start, end))
+        for i in list(self._selected):
+            self._cards[i].set_selected(False)
+        self._selected = set(range(lo, hi + 1))
+        for i in self._selected:
+            self._cards[i].set_selected(True)
 
     def _on_card_activated(self, index: int) -> None:
         self.card_activated.emit(self._cards[index].mod)

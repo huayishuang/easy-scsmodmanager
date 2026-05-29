@@ -45,7 +45,7 @@ class ModCard(QFrame):
     so the parent panel can decide what to do (select, activate, ...).
     """
 
-    clicked = pyqtSignal()
+    clicked = pyqtSignal(object)  # Qt.KeyboardModifiers active at click time
     activated = pyqtSignal()
     favorite_toggled = pyqtSignal(bool)
     info_requested = pyqtSignal()
@@ -109,7 +109,7 @@ class ModCard(QFrame):
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
         if event is not None and event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
+            self.clicked.emit(event.modifiers())
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802

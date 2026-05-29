@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
 from easy_scsmodmanager.core.models.mod_manifest import ModManifest
@@ -74,7 +75,7 @@ def test_selecting_a_card_emits_selection_changed(qtbot: QtBot) -> None:
     grid.set_mods([_mod("A"), _mod("B")])
 
     with qtbot.waitSignal(grid.selection_changed, timeout=500) as sig:
-        grid._on_card_clicked(0)
+        grid._on_card_clicked(0, Qt.KeyboardModifier.NoModifier)
 
     assert len(sig.args[0]) == 1
     assert sig.args[0][0].manifest.display_name == "A"
@@ -86,8 +87,8 @@ def test_selecting_another_card_clears_previous(qtbot: QtBot) -> None:
     qtbot.addWidget(grid)
     grid.set_mods([_mod("A"), _mod("B")])
 
-    grid._on_card_clicked(0)
-    grid._on_card_clicked(1)
+    grid._on_card_clicked(0, Qt.KeyboardModifier.NoModifier)
+    grid._on_card_clicked(1, Qt.KeyboardModifier.NoModifier)
 
     assert grid.cards()[0].is_selected is False
     assert grid.cards()[1].is_selected is True
@@ -97,7 +98,7 @@ def test_clear_selection_drops_all_selected(qtbot: QtBot) -> None:
     grid = ModCardGrid()
     qtbot.addWidget(grid)
     grid.set_mods([_mod("A")])
-    grid._on_card_clicked(0)
+    grid._on_card_clicked(0, Qt.KeyboardModifier.NoModifier)
 
     with qtbot.waitSignal(grid.selection_changed, timeout=500) as sig:
         grid.clear_selection()
@@ -128,3 +129,43 @@ def test_info_requested_relays_the_mod(qtbot: QtBot) -> None:
     grid.cards()[0].info_requested.emit()
 
     assert captured == [mod]
+
+
+def _grid_with(qtbot: QtBot, n: int) -> ModCardGrid:
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+    grid.set_mods([_mod(f"M{i}", path=f"/tmp/m{i}.scs") for i in range(n)])
+    return grid
+
+
+def test_plain_click_selects_only_that_card(qtbot: QtBot) -> None:
+    grid = _grid_with(qtbot, 4)
+    grid._on_card_clicked(1, Qt.KeyboardModifier.NoModifier)
+    grid._on_card_clicked(3, Qt.KeyboardModifier.NoModifier)
+
+    assert [m.manifest.display_name for m in grid.selected_mods()] == ["M3"]
+
+
+def test_ctrl_click_toggles_into_multi_selection(qtbot: QtBot) -> None:
+    grid = _grid_with(qtbot, 4)
+    grid._on_card_clicked(0, Qt.KeyboardModifier.NoModifier)
+    grid._on_card_clicked(2, Qt.KeyboardModifier.ControlModifier)
+
+    assert {m.manifest.display_name for m in grid.selected_mods()} == {"M0", "M2"}
+
+
+def test_ctrl_click_again_deselects(qtbot: QtBot) -> None:
+    grid = _grid_with(qtbot, 4)
+    grid._on_card_clicked(0, Qt.KeyboardModifier.NoModifier)
+    grid._on_card_clicked(2, Qt.KeyboardModifier.ControlModifier)
+    grid._on_card_clicked(2, Qt.KeyboardModifier.ControlModifier)
+
+    assert [m.manifest.display_name for m in grid.selected_mods()] == ["M0"]
+
+
+def test_shift_click_selects_contiguous_range(qtbot: QtBot) -> None:
+    grid = _grid_with(qtbot, 5)
+    grid._on_card_clicked(1, Qt.KeyboardModifier.NoModifier)
+    grid._on_card_clicked(3, Qt.KeyboardModifier.ShiftModifier)
+
+    assert [m.manifest.display_name for m in grid.selected_mods()] == ["M1", "M2", "M3"]
