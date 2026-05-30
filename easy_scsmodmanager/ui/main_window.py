@@ -358,6 +358,7 @@ class MainWindow(QMainWindow):
             self._profile.active_mods,
             installed_names=installed,
             icon_for=self._active_icon_for,
+            category_for=self._category_for_active,
         )
 
     def _icon_for(self, mod: ScannedMod) -> bytes | None:
@@ -379,6 +380,15 @@ class MainWindow(QMainWindow):
         if match is None:
             return None
         return self._icon_for(match)
+
+    def _category_for_active(self, active_mod: ActiveMod) -> tuple[str, ...]:
+        """Effective category of an active mod, via its matched ScannedMod."""
+        if self._matcher is None:
+            return ("other",)
+        match = self._matcher.lookup(active_mod)
+        if match is None:
+            return ("other",)
+        return self._effective_for(match)
 
     def _active_display_map(self) -> dict[str, str]:
         if self._profile is None:
