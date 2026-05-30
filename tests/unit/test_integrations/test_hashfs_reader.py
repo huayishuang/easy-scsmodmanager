@@ -115,6 +115,20 @@ def test_peek_version_and_rejects_non_hashfs(tmp_path: Path) -> None:
         HashFsV1Reader(bad)
 
 
+def test_iter_files_seeds_known_dirs_without_root_listing(tmp_path: Path) -> None:
+    # No root ("") listing - like locale.scs. iter_files must still find files
+    # via the known-top-dir seeds and known root files.
+    items = [
+        ("locale", b"english.sii", True, True),  # listing for /locale
+        ("locale/english.sii", b"hello", False, True),
+        ("manifest.sii", b"mod_package", False, True),  # a known root file
+    ]
+    path = tmp_path / "noroot.scs"
+    path.write_bytes(_build_v1(items))
+    with HashFsV1Reader(path) as r:
+        assert set(r.iter_files()) == {"/locale/english.sii", "/manifest.sii"}
+
+
 def test_v2_header_rejected_by_v1_reader(tmp_path: Path) -> None:
     # Magic + version 2 -> the v1 reader must refuse it clearly.
     data = struct.pack("<IHH", 0x23534353, 2, 0) + b"CITY" + b"\x00" * 40

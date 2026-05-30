@@ -30,6 +30,37 @@ MAGIC = 0x23534353  # "SCS#"
 CITY_METHOD = "CITY"
 ROOT = "/"
 
+# Standard SCS top-level directories, used to seed iter_files for archives
+# that omit the root listing (e.g. locale.scs).
+_KNOWN_TOP_DIRS = (
+    "automat",
+    "def",
+    "dlc",
+    "effect",
+    "font",
+    "locale",
+    "map",
+    "material",
+    "model",
+    "model2",
+    "prefab",
+    "prefab2",
+    "sound",
+    "system",
+    "ui",
+    "unit",
+    "vehicle",
+)
+_KNOWN_ROOT_FILES = (
+    "manifest.sii",
+    "version.sii",
+    "version.txt",
+    "description.txt",
+    "mod_description.txt",
+    "icon.jpg",
+    "mod_workshop_icon.jpg",
+)
+
 _V2_BLOCK_SIZE = 16
 _V2_META_BLOCK = 4
 _CHUNK_IMAGE = 1
@@ -115,27 +146,35 @@ class _HashFsReaderBase:
         raise NotImplementedError
 
     def iter_files(self) -> list[str]:
-        """Every file path in the archive, walked from the root listing.
+        """Every file path in the archive, walked from directory listings.
 
-        Listings that fail to read (a corrupt or manipulated entry) are
-        skipped rather than aborting the whole walk.
+        Normally we walk from the root listing ``/``. Some archives omit it
+        (locale.scs has listings for ``locale/...`` but none for ``/``), so we
+        also seed the walk with the well-known SCS top-level directories and
+        probe a few well-known root files. Listings that fail to read (a
+        corrupt or manipulated entry) are skipped, not fatal.
+
+        This is a pragmatic seed list, not a full deep scan: an archive that
+        omits its root listing AND uses a non-standard top-level name would
+        still be missed.
         """
         found: list[str] = []
-        stack = [ROOT]
         seen: set[str] = set()
+        stack = [ROOT, *(f"/{name}" for name in _KNOWN_TOP_DIRS)]
         while stack:
-            current = stack.pop()
-            if current in seen:
+            canon = "/" + stack.pop().strip("/")
+            if canon in seen:
                 continue
-            seen.add(current)
+            seen.add(canon)
             try:
-                subdirs, files = self.list_dir(current)
+                subdirs, files = self.list_dir(canon)
             except (FileNotFoundError, HashFsError, zlib.error):
                 continue
-            base = "" if current == ROOT else current
+            base = "" if canon == ROOT else canon
             found.extend(f"{base}/{name}" for name in files)
             stack.extend(f"{base}/{name}" for name in subdirs)
-        return found
+        found.extend(f"/{name}" for name in _KNOWN_ROOT_FILES if self.has(name))
+        return sorted(set(found))
 
     # -- internals ----------------------------------------------------- #
 
