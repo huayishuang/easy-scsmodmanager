@@ -34,7 +34,11 @@ from PyQt6.QtWidgets import (
 )
 
 from easy_scsmodmanager import __app_name__, __version__
-from easy_scsmodmanager.core.category_overrides import CategoryOverrides, default_overrides_path
+from easy_scsmodmanager.core.category_overrides import (
+    CategoryOverrides,
+    default_group_overrides_path,
+    default_overrides_path,
+)
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import (
@@ -45,6 +49,7 @@ from easy_scsmodmanager.core.game_paths import (
     find_game_install_dir,
     game_install_from_override,
 )
+from easy_scsmodmanager.core.load_order import group_repr_token
 from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.services.mod_matching import (
@@ -99,6 +104,7 @@ class MainWindow(QMainWindow):
         self._cache = ScanCache(default_cache_path())
         self._workshop_cache = WorkshopMetaCache(self._cache.connection())
         self._overrides = CategoryOverrides(default_overrides_path())
+        self._group_overrides = CategoryOverrides(default_group_overrides_path())
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
 
@@ -191,6 +197,7 @@ class MainWindow(QMainWindow):
         self._active_list.mod_focus_requested.connect(self._on_active_mod_focus)
         self._active_list.order_changed.connect(self._on_active_order_changed)
         self._active_list.mods_dropped.connect(self._on_mods_dropped)
+        self._active_list.move_to_group_requested.connect(self._on_move_to_group)
         right_layout.addWidget(self._profile_header)
         right_layout.addWidget(self._active_list, 1)
 
@@ -382,7 +389,15 @@ class MainWindow(QMainWindow):
         return self._icon_for(match)
 
     def _category_for_active(self, active_mod: ActiveMod) -> tuple[str, ...]:
-        """Effective category of an active mod, via its matched ScannedMod."""
+        """Effective category of an active mod, via its matched ScannedMod.
+
+        Group overrides take priority: if the user pinned this mod to a specific
+        load-order group the override token is returned directly, bypassing the
+        scanner match entirely.
+        """
+        go = self._group_overrides.get(active_mod.name)
+        if go:
+            return (group_repr_token(go),)
         if self._matcher is None:
             return ("other",)
         match = self._matcher.lookup(active_mod)
@@ -498,6 +513,10 @@ class MainWindow(QMainWindow):
             to_place.append(ActiveMod(name=name, display_name=self._display_name_for(mod)))
         if to_place:
             self._active_list.insert_or_move(to_place, at=row)
+
+    def _on_move_to_group(self, mod: ActiveMod, group_id: str) -> None:
+        self._group_overrides.set(mod.name, group_id)
+        self._refresh_active_list()
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:
@@ -684,6 +703,7 @@ class MainWindow(QMainWindow):
             self._workshop_thread.wait(5000)
         self._cache.close()
         self._overrides.close()
+        self._group_overrides.close()
         super().closeEvent(event)
 
 

@@ -86,6 +86,7 @@
   "active_panel.priority_top": "Move to top",
   "active_panel.priority_bottom": "Move to bottom",
   "active_panel.save": "Save",
+  "active_panel.move_to_group": "Move to",
   "dialog.save.title": "Save active mods",
   "dialog.save.body": "Back up the profile before saving?\n\nNote: ETS2 must NOT be running - the game would otherwise overwrite profile.sii on exit.",
 

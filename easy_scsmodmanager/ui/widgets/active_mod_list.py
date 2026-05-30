@@ -20,12 +20,13 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
-from easy_scsmodmanager.core.load_order import group_label_keys
+from easy_scsmodmanager.core.load_order import GROUPS, group_label_keys
 from easy_scsmodmanager.core.load_order_layout import SpacerRow, build_rows
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.theme import Theme
@@ -217,6 +218,7 @@ class ActiveModList(QWidget):
     mod_focus_requested = pyqtSignal(object)  # ActiveMod
     order_changed = pyqtSignal()  # the active list was reordered/edited
     mods_dropped = pyqtSignal(list, int)  # (mod path strings from the grid, target row)
+    move_to_group_requested = pyqtSignal(object, str)  # (ActiveMod, group_id)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -253,7 +255,9 @@ class ActiveModList(QWidget):
         self._list.setAutoScroll(True)  # scroll when dragging near the edges
         self._list.setAutoScrollMargin(140)  # generous edge zone (~3x default)
         self._list.reorder_requested.connect(self._on_reorder_requested)
-        self._list.external_drop_requested.connect(self.mods_dropped.emit)
+        self._list.external_drop_requested.connect(self._on_external_drop)
+        self._list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._list.customContextMenuRequested.connect(self._on_context_menu)
         self._list.setStyleSheet(f"""
             QListWidget {{
                 background-color: {Theme.SURFACE};
@@ -375,6 +379,42 @@ class ActiveModList(QWidget):
                 if data is not None:
                     resolved.append(self.widget_row_to_mod_index(r))
         self.move_rows(resolved, self.widget_row_to_mod_index(widget_target))
+
+    def _on_external_drop(self, paths: list[str], widget_target: int) -> None:
+        """Map raw widget-row drop target to mod-space index before forwarding."""
+        self.mods_dropped.emit(paths, self.widget_row_to_mod_index(widget_target))
+
+    def _on_context_menu(self, pos: object) -> None:
+        from PyQt6.QtCore import QPoint
+
+        if not isinstance(pos, QPoint):
+            return
+        item = self._list.itemAt(pos)
+        if item is None:
+            return
+        mod = item.data(Qt.ItemDataRole.UserRole)
+        if mod is None:
+            return
+        menu = QMenu()
+        submenu = menu.addMenu(t("active_panel.move_to_group"))
+        if submenu is None:
+            return
+        for g in GROUPS:
+            action = submenu.addAction(t(g.label_keys[0]))
+            if action is None:
+                continue
+            group_id = g.id
+
+            def _make_handler(m: object, gid: str) -> Callable[[], None]:
+                def handler() -> None:
+                    self.move_to_group_requested.emit(m, gid)
+
+                return handler
+
+            action.triggered.connect(_make_handler(mod, group_id))
+        viewport = self._list.viewport()
+        if viewport is not None:
+            menu.exec(viewport.mapToGlobal(pos))
 
     def focus_active(self, name: str) -> bool:
         """Select + scroll to the active row with ``name``. False if absent."""

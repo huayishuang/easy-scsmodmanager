@@ -21,7 +21,7 @@ class LoadOrderGroup:
 
     id: str
     label_keys: tuple[str, ...]
-    tokens: frozenset[str]
+    tokens: tuple[str, ...]
 
 
 GROUPS: tuple[LoadOrderGroup, ...] = (
@@ -32,29 +32,29 @@ GROUPS: tuple[LoadOrderGroup, ...] = (
             "load_order.map_base.background",
             "load_order.map_base.loading",
         ),
-        frozenset(),
+        (MAP_BASE,),
     ),
     LoadOrderGroup(
         "graphics_weather",
         ("load_order.graphics_weather",),
-        frozenset({"graphics", "weather_setup"}),
+        ("graphics", "weather_setup"),
     ),
-    LoadOrderGroup("sound", ("load_order.sound",), frozenset({"sound"})),
-    LoadOrderGroup("physics", ("load_order.physics",), frozenset({"physics"})),
+    LoadOrderGroup("sound", ("load_order.sound",), ("sound",)),
+    LoadOrderGroup("physics", ("load_order.physics",), ("physics",)),
     LoadOrderGroup(
         "ui_other",
         ("load_order.ui_other",),
-        frozenset({"ui", "other", "models", "movers", "walkers", "prefabs"}),
+        ("ui", "other", "models", "movers", "walkers", "prefabs"),
     ),
     LoadOrderGroup(
-        "tuning_interior", ("load_order.tuning_interior",), frozenset({"tuning_parts", "interior"})
+        "tuning_interior", ("load_order.tuning_interior",), ("tuning_parts", "interior")
     ),
-    LoadOrderGroup("ai_traffic", ("load_order.ai_traffic",), frozenset({"ai_traffic"})),
-    LoadOrderGroup("cargo", ("load_order.cargo",), frozenset({"cargo_pack"})),
-    LoadOrderGroup("paint_jobs", ("load_order.paint_jobs",), frozenset({"paint_job"})),
-    LoadOrderGroup("trailers", ("load_order.trailers",), frozenset({"trailer"})),
-    LoadOrderGroup("trucks", ("load_order.trucks",), frozenset({"truck"})),
-    LoadOrderGroup("maps", ("load_order.maps",), frozenset({"map"})),
+    LoadOrderGroup("ai_traffic", ("load_order.ai_traffic",), ("ai_traffic",)),
+    LoadOrderGroup("cargo", ("load_order.cargo",), ("cargo_pack",)),
+    LoadOrderGroup("paint_jobs", ("load_order.paint_jobs",), ("paint_job",)),
+    LoadOrderGroup("trailers", ("load_order.trailers",), ("trailer",)),
+    LoadOrderGroup("trucks", ("load_order.trucks",), ("truck",)),
+    LoadOrderGroup("maps", ("load_order.maps",), ("map",)),
 )
 
 _UI_OTHER_INDEX = next(i for i, g in enumerate(GROUPS) if g.id == "ui_other")
@@ -68,3 +68,9 @@ def group_index_for_token(token: str) -> int:
 
 def group_label_keys(group_id: str) -> tuple[str, ...]:
     return next(g.label_keys for g in GROUPS if g.id == group_id)
+
+
+def group_repr_token(group_id: str) -> str:
+    """Return the first token for a group (used as the effective category token
+    when a group override is active)."""
+    return next(g for g in GROUPS if g.id == group_id).tokens[0]

@@ -22,6 +22,17 @@ def default_overrides_path() -> Path:
     return base / "easy-scsmodmanager" / "overrides.db"
 
 
+def default_group_overrides_path() -> Path:
+    """``$XDG_DATA_HOME/easy-scsmodmanager/group_overrides.db`` or HOME fallback.
+
+    Separate from overrides.db: group overrides only affect active-list
+    grouping, not the grid badge/filter.
+    """
+    xdg = os.environ.get("XDG_DATA_HOME")
+    base = Path(xdg) if xdg else Path(os.environ.get("HOME", "~")).expanduser() / ".local" / "share"
+    return base / "easy-scsmodmanager" / "group_overrides.db"
+
+
 class CategoryOverrides:
     def __init__(self, db_path: Path) -> None:
         db_path.parent.mkdir(parents=True, exist_ok=True)
