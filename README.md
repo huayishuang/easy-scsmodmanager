@@ -25,9 +25,8 @@
 </p>
 
 <!-- Hero Screenshot -->
-<!-- TODO: replace with 01_en_main_window.webp once the English screenshot exists -->
 <p align="center">
-  <img src="easy_scsmodmanager/resources/screenshots/01_de_main_window.webp" alt="Easy SCSModManager - Main Window" width="900">
+  <img src="easy_scsmodmanager/resources/screenshots/01_en_main_window.webp" alt="Easy SCSModManager - Main Window" width="900">
 </p>
 
 
