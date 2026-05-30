@@ -64,6 +64,7 @@
   "load_order.trailers": "Trailers",
   "load_order.trucks": "Trucks",
   "load_order.maps": "Maps",
+  "load_order.misplaced_tooltip": "Category {category} - belongs in a different group. Right-click to move it.",
 
   "status.active": "Active",
   "status.inactive": "Inactive",

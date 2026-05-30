@@ -64,6 +64,7 @@
   "load_order.trailers": "Auflieger",
   "load_order.trucks": "Lkw",
   "load_order.maps": "Szenerien (Maps)",
+  "load_order.misplaced_tooltip": "Kategorie {category} - gehoert in eine andere Gruppe. Rechtsklick zum Verschieben.",
 
   "status.active": "Aktiv",
   "status.inactive": "Inaktiv",
