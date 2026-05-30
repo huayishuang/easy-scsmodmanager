@@ -41,6 +41,7 @@ from easy_scsmodmanager.core.game_paths import (
     GameInstall,
     InstallKind,
     detect_game_installs,
+    find_game_install_dir,
     game_install_from_override,
 )
 from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
@@ -65,6 +66,7 @@ from easy_scsmodmanager.services.profile_reader import (
     read_profile,
 )
 from easy_scsmodmanager.services.profile_writer import save_active_mods
+from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
 from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
 from easy_scsmodmanager.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
 from easy_scsmodmanager.ui.dialogs.settings_dialog import SettingsDialog
@@ -136,6 +138,11 @@ class MainWindow(QMainWindow):
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(QApplication.instance().quit)
         file_menu.addAction(quit_action)
+
+        tools_menu = menu_bar.addMenu(t("menu.tools"))
+        extract = QAction(t("menu.tools.extract"), self)
+        extract.triggered.connect(self._on_open_extract)
+        tools_menu.addAction(extract)
 
         help_menu = menu_bar.addMenu(t("menu.help"))
         about = QAction(t("menu.help.about"), self)
@@ -231,6 +238,11 @@ class MainWindow(QMainWindow):
         if dialog.exec():
             # Re-detect from scratch: a path override may have changed.
             self._detect_install_and_scan()
+
+    def _on_open_extract(self) -> None:
+        store = SettingsStore()
+        install_dir = store.get_install_override(self._game) or find_game_install_dir(self._game)
+        ExtractDialog(install_dir, self).exec()
 
     def _load_profiles(self) -> None:
         if self._install is None:

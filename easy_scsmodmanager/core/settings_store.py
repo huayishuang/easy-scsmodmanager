@@ -29,6 +29,10 @@ def _workshop_key(game: Game) -> str:
     return f"paths/{game.value}_workshop"
 
 
+def _install_key(game: Game) -> str:
+    return f"paths/{game.value}_install"
+
+
 class SettingsStore:
     """Thin typed wrapper around a QSettings instance."""
 
@@ -54,6 +58,13 @@ class SettingsStore:
 
     def set_workshop_override(self, game: Game, path: Path | None) -> None:
         _put(self._s, _workshop_key(game), str(path) if path else None)
+
+    def get_install_override(self, game: Game) -> Path | None:
+        """The game's install dir (holds base.scs/def.scs), if set manually."""
+        return _as_path(self._s.value(_install_key(game)))
+
+    def set_install_override(self, game: Game, path: Path | None) -> None:
+        _put(self._s, _install_key(game), str(path) if path else None)
 
 
 def _clean(value: object) -> str | None:

@@ -11,6 +11,7 @@ from easy_scsmodmanager.core.game_paths import (
     GameInstall,
     InstallKind,
     detect_game_installs,
+    find_game_install_dir,
     game_install_from_override,
     linux_native_documents,
     proton_documents_path,
@@ -32,6 +33,17 @@ def test_game_install_from_override_derives_dirs(tmp_path: Path) -> None:
 def test_game_install_from_override_keeps_workshop_dir(tmp_path: Path) -> None:
     install = game_install_from_override(Game.ATS, tmp_path / "d", tmp_path / "ws")
     assert install.workshop_dir == tmp_path / "ws"
+
+
+def test_find_game_install_dir_locates_common_folder(tmp_path: Path) -> None:
+    common = tmp_path / "lib" / "steamapps" / "common" / "Euro Truck Simulator 2"
+    common.mkdir(parents=True)
+    assert find_game_install_dir(Game.ETS2, [tmp_path / "lib"]) == common
+    assert find_game_install_dir(Game.ATS, [tmp_path / "lib"]) is None
+
+
+def test_find_game_install_dir_none_without_libraries(tmp_path: Path) -> None:
+    assert find_game_install_dir(Game.ETS2, []) is None
 
 
 def test_game_app_ids_match_scs_known_values() -> None:

@@ -3,6 +3,9 @@
 Writes through a :class:`SettingsStore`. The language change only takes effect
 on the next start (``t()`` resolves at widget construction), so the dialog says
 so rather than pretending to switch live. An empty path means "auto-detect".
+
+Two kinds of path override: the *documents* dir (mod/ + profiles/) and the
+*install* dir (holds base.scs/def.scs, used by the SCS extractor).
 """
 
 from __future__ import annotations
@@ -28,9 +31,15 @@ from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import available_languages, current_language, t
 
-_DOCUMENT_GAMES = (
-    (Game.ETS2, "settings.paths.ets2_documents"),
-    (Game.ATS, "settings.paths.ats_documents"),
+DOCUMENTS = "documents"
+INSTALL = "install"
+
+# (game, kind, label key)
+_PATH_FIELDS = (
+    (Game.ETS2, DOCUMENTS, "settings.paths.ets2_documents"),
+    (Game.ATS, DOCUMENTS, "settings.paths.ats_documents"),
+    (Game.ETS2, INSTALL, "settings.paths.ets2_install"),
+    (Game.ATS, INSTALL, "settings.paths.ats_install"),
 )
 
 
@@ -38,13 +47,13 @@ class SettingsDialog(QDialog):
     def __init__(self, store: SettingsStore, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._store = store
-        self._doc_paths: dict[Game, Path | None] = {
-            game: store.get_documents_override(game) for game, _ in _DOCUMENT_GAMES
+        self._paths: dict[tuple[Game, str], Path | None] = {
+            (game, kind): self._load(game, kind) for game, kind, _ in _PATH_FIELDS
         }
-        self._doc_edits: dict[Game, QLineEdit] = {}
+        self._edits: dict[tuple[Game, str], QLineEdit] = {}
 
         self.setWindowTitle(t("dialog.settings.title"))
-        self.setMinimumWidth(560)
+        self.setMinimumWidth(580)
         self.setStyleSheet(f"""
             QDialog {{ background-color: {Theme.BACKGROUND}; }}
             QLabel {{ color: {Theme.TEXT}; }}
@@ -61,6 +70,17 @@ class SettingsDialog(QDialog):
             QPushButton:hover {{ background-color: {Theme.SURFACE_HOVER}; }}
         """)
         self._build()
+
+    def _load(self, game: Game, kind: str) -> Path | None:
+        if kind == DOCUMENTS:
+            return self._store.get_documents_override(game)
+        return self._store.get_install_override(game)
+
+    def _save(self, game: Game, kind: str, path: Path | None) -> None:
+        if kind == DOCUMENTS:
+            self._store.set_documents_override(game, path)
+        else:
+            self._store.set_install_override(game, path)
 
     def _build(self) -> None:
         root = QVBoxLayout(self)
@@ -80,11 +100,10 @@ class SettingsDialog(QDialog):
         hint.setStyleSheet(f"color: {Theme.TEXT_DIM};")
         root.addWidget(hint)
 
-        heading = QLabel(t("settings.paths.heading"))
-        heading.setStyleSheet(f"color: {Theme.TEXT_DIM}; margin-top: 6px;")
-        root.addWidget(heading)
-        for game, label_key in _DOCUMENT_GAMES:
-            root.addLayout(self._build_path_row(game, label_key))
+        root.addWidget(self._heading("settings.paths.heading"))
+        self._add_rows(root, DOCUMENTS)
+        root.addWidget(self._heading("settings.paths.install_heading"))
+        self._add_rows(root, INSTALL)
 
         buttons = QDialogButtonBox()
         buttons.addButton(t("dialog.settings.save"), QDialogButtonBox.ButtonRole.AcceptRole)
@@ -93,23 +112,33 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)
 
-    def _build_path_row(self, game: Game, label_key: str) -> QHBoxLayout:
+    def _heading(self, key: str) -> QLabel:
+        label = QLabel(t(key))
+        label.setStyleSheet(f"color: {Theme.TEXT_DIM}; margin-top: 6px;")
+        return label
+
+    def _add_rows(self, root: QVBoxLayout, kind: str) -> None:
+        for game, field_kind, label_key in _PATH_FIELDS:
+            if field_kind == kind:
+                root.addLayout(self._build_path_row(game, kind, label_key))
+
+    def _build_path_row(self, game: Game, kind: str, label_key: str) -> QHBoxLayout:
         row = QHBoxLayout()
         label = QLabel(t(label_key))
-        label.setMinimumWidth(170)
+        label.setMinimumWidth(180)
 
         edit = QLineEdit()
         edit.setReadOnly(True)
         edit.setPlaceholderText(t("settings.paths.auto"))
-        path = self._doc_paths[game]
+        path = self._paths[(game, kind)]
         if path is not None:
             edit.setText(str(path))
-        self._doc_edits[game] = edit
+        self._edits[(game, kind)] = edit
 
         browse = QPushButton(t("settings.paths.browse"))
-        browse.clicked.connect(lambda: self._on_browse(game))
+        browse.clicked.connect(lambda: self._on_browse(game, kind))
         reset = QPushButton(t("settings.paths.reset"))
-        reset.clicked.connect(lambda: self._on_reset(game))
+        reset.clicked.connect(lambda: self._on_reset(game, kind))
 
         row.addWidget(label)
         row.addWidget(edit, 1)
@@ -117,21 +146,21 @@ class SettingsDialog(QDialog):
         row.addWidget(reset)
         return row
 
-    def _on_browse(self, game: Game) -> None:
+    def _on_browse(self, game: Game, kind: str) -> None:
         chosen = QFileDialog.getExistingDirectory(self, t("settings.browse_caption"))
         if chosen:
-            self._doc_paths[game] = Path(chosen)
-            self._doc_edits[game].setText(chosen)
+            self._paths[(game, kind)] = Path(chosen)
+            self._edits[(game, kind)].setText(chosen)
 
-    def _on_reset(self, game: Game) -> None:
-        self._doc_paths[game] = None
-        self._doc_edits[game].setText("")
+    def _on_reset(self, game: Game, kind: str) -> None:
+        self._paths[(game, kind)] = None
+        self._edits[(game, kind)].setText("")
 
     def selected_language(self) -> str:
         return str(self._lang_combo.currentData())
 
     def accept(self) -> None:
         self._store.set_language(self._lang_combo.currentData())
-        for game, _ in _DOCUMENT_GAMES:
-            self._store.set_documents_override(game, self._doc_paths[game])
+        for game, kind, _ in _PATH_FIELDS:
+            self._save(game, kind, self._paths[(game, kind)])
         super().accept()
