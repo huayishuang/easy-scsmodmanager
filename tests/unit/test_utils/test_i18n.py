@@ -13,7 +13,7 @@ def test_returns_english_by_default() -> None:
 
 def test_returns_german_when_switched() -> None:
     set_language("de")
-    assert "Geruest" in t("app.placeholder.scaffold")
+    assert "Gerüst" in t("app.placeholder.scaffold")
     set_language("en")
 
 
