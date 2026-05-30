@@ -43,6 +43,9 @@ MOD_DRAG_MIME = "application/x-escsmm-modpaths"
 WHEEL_STEP_PX = 80
 WHEEL_DURATION_MS = 200
 
+# every group header is as tall as the 3-line map_base block (+10px top/bottom)
+_SPACER_HEIGHT = 80
+
 
 class _ActiveListView(QListWidget):
     """List view that turns drops into model-level reorder / insert signals.
@@ -126,21 +129,22 @@ class _SpacerItem(QWidget):
 
     def __init__(self, group_id: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setFixedHeight(_SPACER_HEIGHT)
         root = QVBoxLayout(self)
-        root.setContentsMargins(8, 6, 8, 4)
-        root.setSpacing(1)
+        root.setContentsMargins(8, 10, 8, 10)
+        root.setSpacing(2)
+        root.addStretch(1)
         for key in group_label_keys(group_id):
             lbl = QLabel(t(key))
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl.setStyleSheet(
                 f"color: {Theme.ACCENT};"
-                "font-size: 12px;"
+                "font-size: 14px;"
                 "font-weight: bold;"
                 "letter-spacing: 1px;"
-                f"border-bottom: 1px solid {Theme.SURFACE_HOVER};"
-                "padding-bottom: 2px;"
             )
             root.addWidget(lbl)
+        root.addStretch(1)
 
 
 class ActiveModItem(QWidget):
