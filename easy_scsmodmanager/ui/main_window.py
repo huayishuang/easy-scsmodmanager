@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (
 )
 
 from easy_scsmodmanager import __app_name__, __version__
+from easy_scsmodmanager.core.category_overrides import CategoryOverrides
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import (
@@ -44,7 +45,7 @@ from easy_scsmodmanager.core.game_paths import (
     find_game_install_dir,
     game_install_from_override,
 )
-from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
+from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
@@ -97,6 +98,7 @@ class MainWindow(QMainWindow):
         self._filter = FilterState()
         self._cache = ScanCache(default_cache_path())
         self._workshop_cache = WorkshopMetaCache(self._cache.connection())
+        self._overrides = CategoryOverrides(default_cache_path().parent / "overrides.db")
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
 
@@ -344,6 +346,7 @@ class MainWindow(QMainWindow):
             active_names=self._active_names_set(),
             icon_for=self._icon_for,
             name_for=self._display_name_for,
+            categories_for=self._effective_for,
         )
 
     def _refresh_active_list(self) -> None:
@@ -401,13 +404,19 @@ class MainWindow(QMainWindow):
             return set()
         return {active.name for active in self._profile.active_mods}
 
+    def _effective_for(self, mod: ScannedMod) -> tuple[str, ...]:
+        cats = mod.manifest.categories if mod.manifest else ()
+        return effective_categories(
+            cats, is_map=mod.is_map, override=self._overrides.get(mod.path.stem)
+        )
+
     def _apply_filter(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
         needle = state.search.lower().strip()
         result: list[ScannedMod] = []
         for mod in mods:
             display = (mod.manifest.display_name if mod.manifest else mod.path.stem).lower()
             author = (mod.manifest.author if mod.manifest else "").lower()
-            cats = canonical_categories(mod.manifest.categories if mod.manifest else [])
+            cats = self._effective_for(mod)
             cat_names = [t(i18n_key(c)).lower() for c in cats]
             if needle and not (
                 needle in display
