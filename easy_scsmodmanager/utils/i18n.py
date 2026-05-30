@@ -70,6 +70,11 @@ def set_language(lang: str) -> None:
         log.warning("Unsupported language %s, keeping %s", lang, _active_lang)
 
 
+def current_language() -> str:
+    """The active language code (e.g. 'de')."""
+    return _active_lang
+
+
 def t(key: str, **kwargs: object) -> str:
     table = _load(_active_lang)
     value = table.get(key)
