@@ -141,6 +141,14 @@
   "settings.paths.ets2_install": "ETS2 game folder",
   "settings.paths.ats_install": "ATS game folder",
 
+  "settings.map_base.heading": "Map base (always pinned to the top block)",
+  "settings.map_base.hint": "Mods whose name contains one of these terms land in the top block automatically (e.g. background map, loading screen).",
+  "settings.map_base.add": "Add",
+  "settings.map_base.remove": "Remove",
+  "settings.map_base.reset": "Default",
+  "settings.map_base.add_title": "Add map-base name",
+  "settings.map_base.add_label": "Part of the mod name:",
+
   "menu.tools.extract": "&Extract SCS files...",
   "dialog.extract.title": "Extract SCS files",
   "dialog.extract.archives_heading": "Archives in the game folder",

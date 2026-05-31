@@ -141,6 +141,14 @@
   "settings.paths.ets2_install": "ETS2 Spiel-Ordner",
   "settings.paths.ats_install": "ATS Spiel-Ordner",
 
+  "settings.map_base.heading": "Map-Basis (immer ganz oben im obersten Block)",
+  "settings.map_base.hint": "Mods, deren Name einen dieser Begriffe enthält, landen automatisch im obersten Block (z.B. Hintergrundkarte, Ladebildschirm).",
+  "settings.map_base.add": "Hinzufügen",
+  "settings.map_base.remove": "Entfernen",
+  "settings.map_base.reset": "Standard",
+  "settings.map_base.add_title": "Map-Basis-Name hinzufügen",
+  "settings.map_base.add_label": "Teil des Mod-Namens:",
+
   "menu.tools.extract": "SCS-Dateien &entpacken...",
   "dialog.extract.title": "SCS-Dateien entpacken",
   "dialog.extract.archives_heading": "Archive im Spiel-Ordner",

@@ -247,6 +247,9 @@ class MainWindow(QMainWindow):
     def _on_open_settings(self) -> None:
         dialog = SettingsDialog(SettingsStore(), self)
         if dialog.exec():
+            # the map-base name list may have changed: re-read it so auto
+            # detection in the active list uses the new terms.
+            self._map_base_names = SettingsStore().get_map_base_names()
             # Re-detect from scratch: a path override may have changed.
             self._detect_install_and_scan()
 
