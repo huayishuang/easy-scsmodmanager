@@ -61,6 +61,10 @@ class ScannedMod:
     error: str | None
     description: str | None = None
     is_map: bool = False
+    # the archive's ``def/`` file paths, captured once at scan time. Powers
+    # conflict detection (mods overwriting the same def file) and the physics
+    # content signal. Empty for mods we could not list.
+    def_files: tuple[str, ...] = ()
 
     @property
     def mod_name(self) -> str:
@@ -222,12 +226,23 @@ def _scan_one(path: Path, cache: ScanCache | None = None) -> ScannedMod:
     return result
 
 
+def _map_and_defs(files: list[str]) -> tuple[bool, tuple[str, ...]]:
+    """is_map flag + the ``def/`` file paths from a single listing.
+
+    Reads the archive once and derives both signals so a 1-GB map is not
+    walked twice (Performance: this listing also feeds conflict detection).
+    """
+    is_map = contains_map(files)
+    def_files = tuple(p for f in files if (p := f.lstrip("/")).startswith("def/"))
+    return is_map, def_files
+
+
 def _scan_directory(directory: Path) -> tuple[ScannedMod, bytes | None, str | None]:
     """Scan an unpacked mod directory (with manifest.sii at its root)."""
     try:
         with DirectoryModSource(directory) as source:
             bundle = read_bundle(source)
-            is_map = contains_map(list_archive_files(source))
+            is_map, def_files = _map_and_defs(list_archive_files(source))
     except MissingManifest as exc:
         return _error_mod(directory, ScsFormat.UNKNOWN, str(exc)), None, None
     except Exception as exc:
@@ -241,6 +256,7 @@ def _scan_directory(directory: Path) -> tuple[ScannedMod, bytes | None, str | No
             error=None,
             description=bundle.description_text,
             is_map=is_map,
+            def_files=def_files,
         ),
         bundle.icon_bytes,
         bundle.description_text,
@@ -338,9 +354,9 @@ def _bundle_result(
 def _bundle_result_with_map(
     scs_path: Path, fmt: ScsFormat, bundle: ManifestBundle, source: object
 ) -> tuple[ScannedMod, bytes | None, str | None]:
-    is_map = contains_map(list_archive_files(source))
+    is_map, def_files = _map_and_defs(list_archive_files(source))
     mod, icon, desc = _bundle_result(scs_path, fmt, bundle)
-    return replace(mod, is_map=is_map), icon, desc
+    return replace(mod, is_map=is_map, def_files=def_files), icon, desc
 
 
 _ZIP_ICON_CANDIDATES = (

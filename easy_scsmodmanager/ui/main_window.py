@@ -54,6 +54,7 @@ from easy_scsmodmanager.core.load_order import group_repr_token
 from easy_scsmodmanager.core.map_base_mods import is_map_base
 from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
+from easy_scsmodmanager.integrations.scs.content_category import content_category
 from easy_scsmodmanager.services.map_combo import (
     MapComboEntry,
     MapComboError,
@@ -454,7 +455,10 @@ class MainWindow(QMainWindow):
     def _effective_for(self, mod: ScannedMod) -> tuple[str, ...]:
         cats = mod.manifest.categories if mod.manifest else ()
         return effective_categories(
-            cats, is_map=mod.is_map, override=self._overrides.get(mod.path.stem)
+            cats,
+            is_map=mod.is_map,
+            override=self._overrides.get(mod.path.stem),
+            content_category=content_category(mod.def_files),
         )
 
     def _apply_filter(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:

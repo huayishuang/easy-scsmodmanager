@@ -151,6 +151,37 @@ def test_put_stores_error_entry_with_null_manifest(tmp_path: Path) -> None:
     assert entry.mod.error == "bad magic"
 
 
+def test_def_files_round_trip_through_cache(tmp_path: Path) -> None:
+    db = tmp_path / "cache.db"
+    scs = _make_scs(tmp_path / "mod.scs")
+    mod = ScannedMod(
+        path=scs,
+        format=ScsFormat.ZIP,
+        manifest=_manifest(),
+        error=None,
+        def_files=("def/vehicle/physics.sii", "def/climate.sii"),
+    )
+
+    with ScanCache(db) as cache:
+        cache.put(scs, mod)
+        entry = cache.get(scs)
+
+    assert entry is not None
+    assert entry.mod.def_files == ("def/vehicle/physics.sii", "def/climate.sii")
+
+
+def test_def_files_default_empty_for_legacy_rows(tmp_path: Path) -> None:
+    db = tmp_path / "cache.db"
+    scs = _make_scs(tmp_path / "mod.scs")
+
+    with ScanCache(db) as cache:
+        cache.put(scs, _scanned(scs))
+        entry = cache.get(scs)
+
+    assert entry is not None
+    assert entry.mod.def_files == ()
+
+
 def test_put_stores_none_icon_separately_from_empty_bytes(tmp_path: Path) -> None:
     db = tmp_path / "cache.db"
     scs = _make_scs(tmp_path / "mod.scs")
