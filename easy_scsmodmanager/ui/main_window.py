@@ -55,6 +55,7 @@ from easy_scsmodmanager.core.map_base_mods import is_map_base
 from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.integrations.scs.content_category import content_category
+from easy_scsmodmanager.services.conflict_detect import ModConflict, find_conflicts
 from easy_scsmodmanager.services.map_combo import (
     MapComboEntry,
     MapComboError,
@@ -121,6 +122,8 @@ class MainWindow(QMainWindow):
         self._workshop_thread: WorkshopFetchThread | None = None
         # a MapCombo waiting to be applied once a fresh scan completes
         self._pending_combo: list[MapComboEntry] | None = None
+        # active.name -> mods it shares a def file with (recomputed per scan)
+        self._conflicts: dict[str, list[ModConflict]] = {}
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
         self.setMinimumSize(QSize(1280, 760))
@@ -382,12 +385,39 @@ class MainWindow(QMainWindow):
             self._active_list.set_active_mods([])
             return
         installed = {active_name_for(m) for m in self._all_mods}
+        self._compute_conflicts()
         self._active_list.set_active_mods(
             self._profile.active_mods,
             installed_names=installed,
             icon_for=self._active_icon_for,
             category_for=self._category_for_active,
+            conflict_for=self._conflict_for,
         )
+
+    def _compute_conflicts(self) -> None:
+        """Recompute which active mods overwrite the same def files."""
+        self._conflicts = {}
+        if self._profile is None or self._matcher is None:
+            return
+        active_defs: dict[str, tuple[str, ...]] = {}
+        for active in self._profile.active_mods:
+            match = self._matcher.lookup(active)
+            if match is not None and match.def_files:
+                active_defs[active.name] = match.def_files
+        self._conflicts = find_conflicts(active_defs)
+
+    def _conflict_for(self, active_mod: ActiveMod) -> str:
+        """Tooltip listing the active mods this one shares def files with."""
+        conflicts = self._conflicts.get(active_mod.name)
+        if not conflicts:
+            return ""
+        names = self._active_display_map()
+        lines = [t("conflict.tooltip_header")]
+        for c in conflicts[:8]:
+            other = names.get(c.other, c.other)
+            sample = c.shared[0] if c.shared else ""
+            lines.append(t("conflict.tooltip_row", mod=other, file=sample))
+        return "\n".join(lines)
 
     def _icon_for(self, mod: ScannedMod) -> bytes | None:
         entry = self._cache.get(mod.path)

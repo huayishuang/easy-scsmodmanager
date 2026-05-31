@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import combinations
 
@@ -37,7 +37,7 @@ class ModConflict:
     shared: tuple[str, ...]  # shared def paths (capped for display)
 
 
-def find_conflicts(active: dict[str, Iterable[str]]) -> dict[str, list[ModConflict]]:
+def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModConflict]]:
     """Map each mod_name to the other active mods it shares a def file with.
 
     ``active`` maps mod_name -> its def file paths. The result only contains

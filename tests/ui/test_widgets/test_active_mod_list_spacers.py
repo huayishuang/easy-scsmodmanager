@@ -142,6 +142,37 @@ def test_apply_combo_order_reorders_block_only(qtbot: QtBot) -> None:
     assert [m.name for m in w.display_order()] == ["snd", "m2", "m1"]
 
 
+def test_conflict_marks_name_and_sets_tooltip(qtbot: QtBot) -> None:
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    w.set_active_mods(
+        _mods("a"),
+        category_for=lambda m: ("truck",),
+        conflict_for=lambda m: "shares def/x with B" if m.name == "a" else "",
+    )
+    for i in range(w._list.count()):
+        item = w._list.item(i)
+        if item.data(Qt.ItemDataRole.UserRole) is not None:
+            widget = w._list.itemWidget(item)
+            assert widget.toolTip() == "shares def/x with B"
+            assert widget._name.text().startswith("⚠")
+            return
+    raise AssertionError("no mod row found")
+
+
+def test_no_conflict_leaves_name_plain(qtbot: QtBot) -> None:
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    w.set_active_mods(_mods("a"), category_for=lambda m: ("truck",), conflict_for=lambda m: "")
+    for i in range(w._list.count()):
+        item = w._list.item(i)
+        if item.data(Qt.ItemDataRole.UserRole) is not None:
+            widget = w._list.itemWidget(item)
+            assert not widget._name.text().startswith("⚠")
+            return
+    raise AssertionError("no mod row found")
+
+
 def test_maps_spacer_carries_group_id(qtbot: QtBot) -> None:
     w = _maps_list(qtbot)
     roles = [

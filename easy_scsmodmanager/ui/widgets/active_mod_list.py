@@ -180,6 +180,7 @@ class ActiveModItem(QWidget):
         *,
         is_missing: bool,
         misplaced: bool = False,
+        conflict: bool = False,
         tooltip: str = "",
         parent: QWidget | None = None,
     ) -> None:
@@ -197,7 +198,10 @@ class ActiveModItem(QWidget):
         self._set_thumbnail(icon_bytes)
         root.addWidget(self._thumb, 0, Qt.AlignmentFlag.AlignCenter)
 
-        self._name = QLabel(_format_label(mod))
+        # a conflict gets a warning glyph on the name (no extra row, so card
+        # height stays uniform); the details live in the tooltip.
+        label = ("⚠ " + _format_label(mod)) if conflict else _format_label(mod)
+        self._name = QLabel(label)
         self._name.setStyleSheet(f"color: {Theme.TEXT}; font-size: 11px; font-weight: 600;")
         self._name.setWordWrap(True)
         self._name.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -259,6 +263,7 @@ class ActiveModList(QWidget):
         self._icon_for: Callable[[ActiveMod], bytes | None] | None = None
         self._installed_names: set[str] = set()
         self._category_for: Callable[[ActiveMod], tuple[str, ...]] | None = None
+        self._conflict_for: Callable[[ActiveMod], str] | None = None
         self._misplaced: set[str] = set()
 
         root = QVBoxLayout(self)
@@ -326,10 +331,12 @@ class ActiveModList(QWidget):
         installed_names: set[str] | None = None,
         icon_for: Callable[[ActiveMod], bytes | None] | None = None,
         category_for: Callable[[ActiveMod], tuple[str, ...]] | None = None,
+        conflict_for: Callable[[ActiveMod], str] | None = None,
     ) -> None:
         self._installed_names = installed_names or set()
         self._icon_for = icon_for
         self._category_for = category_for
+        self._conflict_for = conflict_for
         # store top-priority first; the incoming list is profile order
         self._mods = list(reversed(list(mods)))
         self._rerender()
@@ -550,20 +557,24 @@ class ActiveModList(QWidget):
                 icon_bytes = self._icon_for(mod) if self._icon_for is not None else None
                 if row.misplaced:
                     self._misplaced.add(mod.name)
-                tip = (
-                    t(
-                        "load_order.misplaced_tooltip",
-                        category=self._expected_label(row.expected_group_id),
+                tips: list[str] = []
+                if row.misplaced:
+                    tips.append(
+                        t(
+                            "load_order.misplaced_tooltip",
+                            category=self._expected_label(row.expected_group_id),
+                        )
                     )
-                    if row.misplaced
-                    else ""
-                )
+                conflict_tip = self._conflict_for(mod) if self._conflict_for is not None else ""
+                if conflict_tip:
+                    tips.append(conflict_tip)
                 widget = ActiveModItem(
                     mod,
                     icon_bytes,
                     is_missing=mod.name not in self._installed_names,
                     misplaced=row.misplaced,
-                    tooltip=tip,
+                    conflict=bool(conflict_tip),
+                    tooltip="\n\n".join(tips),
                 )
                 item = QListWidgetItem()
                 item.setData(Qt.ItemDataRole.UserRole, mod)
