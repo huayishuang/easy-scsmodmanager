@@ -24,7 +24,6 @@ from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
-    QFileDialog,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
@@ -52,15 +51,6 @@ from easy_scsmodmanager.core.game_paths import (
 )
 from easy_scsmodmanager.core.game_version import read_game_version
 from easy_scsmodmanager.core.settings_store import SettingsStore
-from easy_scsmodmanager.services.map_combo import (
-    MapComboEntry,
-    MapComboError,
-    missing,
-    outdated,
-    parse,
-    reorder,
-    serialize,
-)
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
@@ -80,6 +70,7 @@ from easy_scsmodmanager.services.profile_reader import (
     read_profile,
 )
 from easy_scsmodmanager.services.profile_writer import save_active_mods
+from easy_scsmodmanager.ui.controllers.map_combo_controller import MapComboController
 from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
 from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
 from easy_scsmodmanager.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
@@ -118,8 +109,6 @@ class MainWindow(QMainWindow):
         self._game_version: str | None = None
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
-        # a MapCombo waiting to be applied once a fresh scan completes
-        self._pending_combo: list[MapComboEntry] | None = None
         # derives display data (names, icons, categories, conflicts, filtering)
         self._presenter = ModPresenter(
             cache=self._cache,
@@ -218,8 +207,15 @@ class MainWindow(QMainWindow):
         self._active_list.order_changed.connect(self._on_active_order_changed)
         self._active_list.mods_dropped.connect(self._on_mods_dropped)
         self._active_list.move_to_group_requested.connect(self._on_move_to_group)
-        self._active_list.export_combo_requested.connect(self._on_export_combo)
-        self._active_list.import_combo_requested.connect(self._on_import_combo)
+        self._combo = MapComboController(
+            parent=self,
+            active_list=self._active_list,
+            presenter=self._presenter,
+            show_status=self.statusBar().showMessage,
+            request_rescan=self._rescan_if_possible,
+        )
+        self._active_list.export_combo_requested.connect(self._combo.export)
+        self._active_list.import_combo_requested.connect(self._combo.import_)
         right_layout.addWidget(self._profile_header)
         right_layout.addWidget(self._active_list, 1)
 
@@ -368,8 +364,8 @@ class MainWindow(QMainWindow):
             )
         )
         self._kickoff_workshop_fetch()
-        if self._pending_combo is not None:
-            self._apply_pending_combo()
+        if self._combo.has_pending():
+            self._combo.apply_pending()
 
     def _on_scan_failed(self, message: str) -> None:
         self.statusBar().showMessage(message)
@@ -465,89 +461,12 @@ class MainWindow(QMainWindow):
         self._group_overrides.set(mod.name, group_id)
         self._active_list.move_mod_to_group(mod, group_id)
 
-    def _on_export_combo(self) -> None:
-        block = self._active_list.maps_block()
-        if not block:
-            QMessageBox.information(self, t("map_combo.empty_title"), t("map_combo.empty_body"))
-            return
-        path, _ = QFileDialog.getSaveFileName(
-            self, t("map_combo.save_caption"), "", t("map_combo.file_filter")
-        )
-        if not path:
-            return
-        if not path.lower().endswith(".json"):
-            path += ".json"
-        versions = self._presenter.local_versions()
-        entries = [
-            MapComboEntry(
-                name=m.name,
-                display_name=m.display_name,
-                package_version=versions.get(m.name, ""),
-            )
-            for m in block
-        ]
-        Path(path).write_text(serialize(entries), encoding="utf-8")
-        self.statusBar().showMessage(t("map_combo.exported", count=len(entries)))
-
-    def _on_import_combo(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, t("map_combo.open_caption"), "", t("map_combo.file_filter")
-        )
-        if not path:
-            return
-        try:
-            combo = parse(Path(path).read_text(encoding="utf-8"))
-        except (MapComboError, OSError):
-            QMessageBox.warning(self, t("map_combo.invalid_title"), t("map_combo.invalid_body"))
-            return
-        # rescan first so the maps block reflects the current disk state, then
-        # apply the combo from the scan-finished callback. Without this the
-        # missing-maps check runs against stale scan data.
-        self._pending_combo = combo
-        if self._install is not None:
-            self.statusBar().showMessage(t("map_combo.import_scanning"))
-            self._start_scan()
-        else:
-            self._apply_pending_combo()
-
-    def _apply_pending_combo(self) -> None:
-        combo = self._pending_combo
-        self._pending_combo = None
-        if combo is None:
-            return
-        block = self._active_list.maps_block()
-        gaps = missing(combo, {m.name for m in block})
-        if gaps:
-            names = "\n".join(f"- {e.display_name or e.name}" for e in gaps)
-            QMessageBox.warning(
-                self,
-                t("map_combo.missing_title"),
-                f"{t('map_combo.missing_body')}\n\n{names}",
-            )
-            return
-        self._active_list.apply_combo_order(reorder(block, combo))
-        self.statusBar().showMessage(t("map_combo.imported", count=len(combo)))
-        self._warn_outdated_combo(combo)
-
-    def _warn_outdated_combo(self, combo: list[MapComboEntry]) -> None:
-        """After import, hint (never block) about maps the combo built newer."""
-        stale = outdated(combo, self._presenter.local_versions())
-        if not stale:
-            return
-        rows = "\n".join(
-            t(
-                "map_combo.outdated_row",
-                name=entry.display_name or entry.name,
-                local=local,
-                combo=entry.package_version,
-            )
-            for entry, local in stale
-        )
-        QMessageBox.information(
-            self,
-            t("map_combo.outdated_title"),
-            f"{t('map_combo.outdated_body')}\n\n{rows}",
-        )
+    def _rescan_if_possible(self) -> bool:
+        """Kick off a rescan when an install is known. Returns whether it ran."""
+        if self._install is None:
+            return False
+        self._start_scan()
+        return True
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:
