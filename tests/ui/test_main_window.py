@@ -173,7 +173,9 @@ def test_search_matches_the_visible_name_not_just_the_manifest(qtbot) -> None:
         active_mods=(ActiveMod(active_name_for(mod), "MAN TGX Improved Dashboard"),),
     )
 
-    found = window._apply_filter([mod], FilterState(search="dash"))
+    # the window feeds its scan context into the presenter before it derives
+    window._sync_presenter()
+    found = window._presenter.filter_and_sort([mod], FilterState(search="dash"))
 
     assert found == [mod]
 

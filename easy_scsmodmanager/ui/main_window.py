@@ -51,13 +51,7 @@ from easy_scsmodmanager.core.game_paths import (
     game_install_from_override,
 )
 from easy_scsmodmanager.core.game_version import read_game_version
-from easy_scsmodmanager.core.load_order import group_repr_token
-from easy_scsmodmanager.core.map_base_mods import is_map_base
-from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
-from easy_scsmodmanager.core.version_compat import CompatStatus, compat_status
-from easy_scsmodmanager.integrations.scs.content_category import content_category
-from easy_scsmodmanager.services.conflict_detect import ModConflict, find_conflicts
 from easy_scsmodmanager.services.map_combo import (
     MapComboEntry,
     MapComboError,
@@ -70,11 +64,9 @@ from easy_scsmodmanager.services.map_combo import (
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
-    resolve_display_name,
     workshop_id_for_path,
 )
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
-from easy_scsmodmanager.services.mod_search import matches_search
 from easy_scsmodmanager.services.profile_backup import (
     create_backup,
     list_backups,
@@ -92,11 +84,12 @@ from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
 from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
 from easy_scsmodmanager.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
 from easy_scsmodmanager.ui.dialogs.settings_dialog import SettingsDialog
+from easy_scsmodmanager.ui.mod_presenter import ModPresenter
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.threads.scan_thread import ScanResult, ScanThread
 from easy_scsmodmanager.ui.threads.workshop_fetch_thread import WorkshopFetchThread
 from easy_scsmodmanager.ui.widgets.active_mod_list import ActiveModList
-from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, FilterToolbar, SortKey
+from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, FilterToolbar
 from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
 from easy_scsmodmanager.ui.widgets.profile_header import ProfileChoice, ProfileHeader
 from easy_scsmodmanager.utils.i18n import t
@@ -127,8 +120,13 @@ class MainWindow(QMainWindow):
         self._workshop_thread: WorkshopFetchThread | None = None
         # a MapCombo waiting to be applied once a fresh scan completes
         self._pending_combo: list[MapComboEntry] | None = None
-        # active.name -> mods it shares a def file with (recomputed per scan)
-        self._conflicts: dict[str, list[ModConflict]] = {}
+        # derives display data (names, icons, categories, conflicts, filtering)
+        self._presenter = ModPresenter(
+            cache=self._cache,
+            workshop_cache=self._workshop_cache,
+            overrides=self._overrides,
+            group_overrides=self._group_overrides,
+        )
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
         self.setMinimumSize(QSize(1280, 760))
@@ -376,160 +374,41 @@ class MainWindow(QMainWindow):
     def _on_scan_failed(self, message: str) -> None:
         self.statusBar().showMessage(message)
 
-    def _refresh_grid(self) -> None:
-        filtered = self._apply_filter(self._all_mods, self._filter)
-        self._grid.set_mods(
-            filtered,
-            active_names=self._active_names_set(),
-            icon_for=self._icon_for,
-            name_for=self._display_name_for,
-            categories_for=self._effective_for,
-            compat_for=self._compat_for,
+    def _sync_presenter(self) -> None:
+        """Push the current scan context into the presenter before it derives."""
+        self._presenter.set_context(
+            matcher=self._matcher,
+            profile=self._profile,
+            game_version=self._game_version,
+            map_base_names=self._map_base_names,
         )
 
-    def _compat_for(self, mod: ScannedMod) -> CompatStatus:
-        cvs = mod.manifest.compatible_versions if mod.manifest else ()
-        return compat_status(self._game_version, cvs)
+    def _refresh_grid(self) -> None:
+        self._sync_presenter()
+        filtered = self._presenter.filter_and_sort(self._all_mods, self._filter)
+        self._grid.set_mods(
+            filtered,
+            active_names=self._presenter.active_names(),
+            icon_for=self._presenter.icon_for,
+            name_for=self._presenter.display_name_for,
+            categories_for=self._presenter.effective_for,
+            compat_for=self._presenter.compat_for,
+        )
 
     def _refresh_active_list(self) -> None:
         if self._profile is None or self._matcher is None:
             self._active_list.set_active_mods([])
             return
+        self._sync_presenter()
         installed = {active_name_for(m) for m in self._all_mods}
-        self._compute_conflicts()
+        self._presenter.compute_conflicts()
         self._active_list.set_active_mods(
             self._profile.active_mods,
             installed_names=installed,
-            icon_for=self._active_icon_for,
-            category_for=self._category_for_active,
-            conflict_for=self._conflict_for,
+            icon_for=self._presenter.active_icon_for,
+            category_for=self._presenter.category_for_active,
+            conflict_for=self._presenter.conflict_for,
         )
-
-    def _compute_conflicts(self) -> None:
-        """Recompute which active mods overwrite the same def files."""
-        self._conflicts = {}
-        if self._profile is None or self._matcher is None:
-            return
-        active_defs: dict[str, tuple[str, ...]] = {}
-        for active in self._profile.active_mods:
-            match = self._matcher.lookup(active)
-            if match is not None and match.def_files:
-                active_defs[active.name] = match.def_files
-        self._conflicts = find_conflicts(active_defs)
-
-    def _conflict_for(self, active_mod: ActiveMod) -> str:
-        """Tooltip listing the active mods this one shares def files with."""
-        conflicts = self._conflicts.get(active_mod.name)
-        if not conflicts:
-            return ""
-        names = self._active_display_map()
-        lines = [t("conflict.tooltip_header")]
-        for c in conflicts[:8]:
-            other = names.get(c.other, c.other)
-            sample = c.shared[0] if c.shared else ""
-            lines.append(t("conflict.tooltip_row", mod=other, file=sample))
-        return "\n".join(lines)
-
-    def _icon_for(self, mod: ScannedMod) -> bytes | None:
-        entry = self._cache.get(mod.path)
-        if entry and entry.icon_bytes:
-            return entry.icon_bytes
-        # Fall back to a Steam-Workshop preview when no local icon is in
-        # the .scs - covers map mods with encrypted manifests.
-        workshop_id = workshop_id_for_path(mod.path)
-        if workshop_id is None:
-            return None
-        meta = self._workshop_cache.get(workshop_id)
-        return meta.preview_bytes if meta else None
-
-    def _active_icon_for(self, active_mod: ActiveMod) -> bytes | None:
-        if self._matcher is None:
-            return None
-        match = self._matcher.lookup(active_mod)
-        if match is None:
-            return None
-        return self._icon_for(match)
-
-    def _category_for_active(self, active_mod: ActiveMod) -> tuple[str, ...]:
-        """Effective category of an active mod, via its matched ScannedMod.
-
-        Group overrides take priority: if the user pinned this mod to a specific
-        load-order group the override token is returned directly, bypassing the
-        scanner match entirely.
-        """
-        go = self._group_overrides.get(active_mod.name)
-        if go:
-            return (group_repr_token(go),)
-        if is_map_base(active_mod.name, active_mod.display_name or "", self._map_base_names):
-            return ("map_base",)
-        if self._matcher is None:
-            return ("other",)
-        match = self._matcher.lookup(active_mod)
-        if match is None:
-            return ("other",)
-        return self._effective_for(match)
-
-    def _active_display_map(self) -> dict[str, str]:
-        if self._profile is None:
-            return {}
-        return {a.name: a.display_name for a in self._profile.active_mods if a.display_name}
-
-    def _display_name_for(self, mod: ScannedMod) -> str:
-        title = None
-        wid = workshop_id_for_path(mod.path)
-        if wid is not None:
-            meta = self._workshop_cache.get(wid)
-            title = meta.title if meta else None
-        return resolve_display_name(mod, self._active_display_map(), workshop_title=title)
-
-    def _active_names_set(self) -> set[str]:
-        """The active_mods names referenced by the profile.
-
-        The grid matches each card via active_name_for, so workshop mods
-        light up only for their own id instead of every mod sharing the
-        ``universal`` stem.
-        """
-        if self._profile is None:
-            return set()
-        return {active.name for active in self._profile.active_mods}
-
-    def _effective_for(self, mod: ScannedMod) -> tuple[str, ...]:
-        cats = mod.manifest.categories if mod.manifest else ()
-        return effective_categories(
-            cats,
-            is_map=mod.is_map,
-            override=self._overrides.get(mod.path.stem),
-            content_category=content_category(mod.def_files),
-        )
-
-    def _apply_filter(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
-        result: list[ScannedMod] = []
-        for mod in mods:
-            # Search the name the user actually sees on the card, not a second
-            # divergent source - a workshop "...Dashboard" lives in its title.
-            display = self._display_name_for(mod)
-            author = mod.manifest.author if mod.manifest else ""
-            cats = self._effective_for(mod)
-            cat_names = [t(i18n_key(c)) for c in cats]
-            if not matches_search(state.search, display, author, mod.path.name, *cat_names):
-                continue
-            if state.category is not None and state.category not in cats:
-                continue
-            result.append(mod)
-
-        result.sort(key=lambda m: self._sort_key(m, state.sort_key), reverse=state.sort_descending)
-        return result
-
-    def _sort_key(self, mod: ScannedMod, key: SortKey) -> tuple[int, str | float]:
-        if key is SortKey.NAME:
-            return (0, (mod.manifest.display_name if mod.manifest else mod.path.stem).lower())
-        if key is SortKey.AUTHOR:
-            return (0, (mod.manifest.author if mod.manifest else "").lower())
-        if key is SortKey.DATE:
-            return (0, mod.path.stat().st_mtime)
-        if key is SortKey.STATUS:
-            return (0 if mod.path.stem in self._active_paths_set() else 1, mod.path.name.lower())
-        return (0, mod.path.name.lower())
 
     # ------------------------------------------------------------------ #
     # signal handlers
@@ -546,7 +425,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(t("status_bar.selection", count=len(mods)))
 
     def _on_mod_info_requested(self, mod: ScannedMod) -> None:
-        ModInfoDialog(mod, parent=self, display_name=self._display_name_for(mod)).exec()
+        ModInfoDialog(mod, parent=self, display_name=self._presenter.display_name_for(mod)).exec()
 
     def _on_active_order_changed(self) -> None:
         self._save_btn.setEnabled(True)
@@ -555,7 +434,7 @@ class MainWindow(QMainWindow):
     def _on_mod_activated(self, mod: ScannedMod) -> None:
         # double-click in the grid puts the mod at the top of the active list
         self._active_list.move_to_top(
-            ActiveMod(name=active_name_for(mod), display_name=self._display_name_for(mod))
+            ActiveMod(name=active_name_for(mod), display_name=self._presenter.display_name_for(mod))
         )
 
     def _on_mods_dropped(self, paths: list[str], row: int) -> None:
@@ -573,7 +452,9 @@ class MainWindow(QMainWindow):
             if name in seen:  # dedup within this drag itself
                 continue
             seen.add(name)
-            to_place.append(ActiveMod(name=name, display_name=self._display_name_for(mod)))
+            to_place.append(
+                ActiveMod(name=name, display_name=self._presenter.display_name_for(mod))
+            )
         if to_place:
             self._active_list.insert_or_move(to_place, at=row)
 
@@ -596,7 +477,7 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".json"):
             path += ".json"
-        versions = self._local_versions()
+        versions = self._presenter.local_versions()
         entries = [
             MapComboEntry(
                 name=m.name,
@@ -607,17 +488,6 @@ class MainWindow(QMainWindow):
         ]
         Path(path).write_text(serialize(entries), encoding="utf-8")
         self.statusBar().showMessage(t("map_combo.exported", count=len(entries)))
-
-    def _local_versions(self) -> dict[str, str]:
-        """active.name -> local package_version, for combo version checks."""
-        result: dict[str, str] = {}
-        if self._profile is None or self._matcher is None:
-            return result
-        for active in self._profile.active_mods:
-            match = self._matcher.lookup(active)
-            if match is not None and match.manifest and match.manifest.package_version:
-                result[active.name] = match.manifest.package_version
-        return result
 
     def _on_import_combo(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -661,7 +531,7 @@ class MainWindow(QMainWindow):
 
     def _warn_outdated_combo(self, combo: list[MapComboEntry]) -> None:
         """After import, hint (never block) about maps the combo built newer."""
-        stale = outdated(combo, self._local_versions())
+        stale = outdated(combo, self._presenter.local_versions())
         if not stale:
             return
         rows = "\n".join(
@@ -734,7 +604,7 @@ class MainWindow(QMainWindow):
             has_manifest = mod.manifest is not None
             # also fetch when we still have no real name (workshop mods whose
             # manifest carries no display_name and that aren't in the profile)
-            has_name = self._display_name_for(mod) != mod.path.stem
+            has_name = self._presenter.display_name_for(mod) != mod.path.stem
             if has_icon and has_manifest and has_name:
                 continue
             seen.add(wid)
