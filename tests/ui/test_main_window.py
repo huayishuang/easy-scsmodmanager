@@ -145,6 +145,39 @@ def test_drop_relocates_already_active_mod_without_duplicating(qtbot) -> None:
     assert order[0] == "already"  # relocated to the drop position
 
 
+def test_search_matches_the_visible_name_not_just_the_manifest(qtbot) -> None:
+    # The dash bug: a workshop mod whose only readable name is the profile's
+    # active display ("...Dashboard"). Searching "dash" must find it even though
+    # its manifest carries no name and its file stem is "universal".
+    from pathlib import Path
+
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_matching import active_name_for
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+    from easy_scsmodmanager.services.profile_reader import ActiveMod, Profile
+    from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+
+    mod = ScannedMod(
+        path=Path("/lib/steamapps/workshop/content/227300/123/universal.scs"),
+        format=ScsFormat.ZIP,
+        manifest=None,
+        error=None,
+    )
+    window._all_mods = [mod]
+    window._profile = Profile(
+        dir_name="abc",
+        profile_name="T",
+        active_mods=(ActiveMod(active_name_for(mod), "MAN TGX Improved Dashboard"),),
+    )
+
+    found = window._apply_filter([mod], FilterState(search="dash"))
+
+    assert found == [mod]
+
+
 def test_restore_reachable_when_profile_failed_to_parse(qtbot, tmp_path, monkeypatch) -> None:
     # the whole point of restore is to recover a profile that no longer parses
     window = MainWindow(auto_scan=False)

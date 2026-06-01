@@ -74,6 +74,7 @@ from easy_scsmodmanager.services.mod_matching import (
     workshop_id_for_path,
 )
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
+from easy_scsmodmanager.services.mod_search import matches_search
 from easy_scsmodmanager.services.profile_backup import (
     create_backup,
     list_backups,
@@ -502,19 +503,15 @@ class MainWindow(QMainWindow):
         )
 
     def _apply_filter(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
-        needle = state.search.lower().strip()
         result: list[ScannedMod] = []
         for mod in mods:
-            display = (mod.manifest.display_name if mod.manifest else mod.path.stem).lower()
-            author = (mod.manifest.author if mod.manifest else "").lower()
+            # Search the name the user actually sees on the card, not a second
+            # divergent source - a workshop "...Dashboard" lives in its title.
+            display = self._display_name_for(mod)
+            author = mod.manifest.author if mod.manifest else ""
             cats = self._effective_for(mod)
-            cat_names = [t(i18n_key(c)).lower() for c in cats]
-            if needle and not (
-                needle in display
-                or needle in author
-                or needle in mod.path.name.lower()
-                or any(needle in n for n in cat_names)
-            ):
+            cat_names = [t(i18n_key(c)) for c in cats]
+            if not matches_search(state.search, display, author, mod.path.name, *cat_names):
                 continue
             if state.category is not None and state.category not in cats:
                 continue
