@@ -10,9 +10,10 @@ from __future__ import annotations
 import webbrowser
 from typing import TYPE_CHECKING
 
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QActionGroup
 from PyQt6.QtWidgets import QApplication
 
+from easy_scsmodmanager.core.game_paths import GAME_DIRECTORY_NAME, Game
 from easy_scsmodmanager.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -44,6 +45,8 @@ def build_menu_bar(window: MainWindow) -> None:
     quit_action.triggered.connect(QApplication.instance().quit)
     file_menu.addAction(quit_action)
 
+    _build_game_menu(window)
+
     tools_menu = menu_bar.addMenu(t("menu.tools"))
     extract = QAction(t("menu.tools.extract"), window)
     extract.triggered.connect(window._on_open_extract)
@@ -57,3 +60,26 @@ def build_menu_bar(window: MainWindow) -> None:
     issues = QAction(t("menu.help.report_issue"), window)
     issues.triggered.connect(lambda: webbrowser.open(GITHUB_ISSUES_URL))
     help_menu.addAction(issues)
+
+
+def _build_game_menu(window: MainWindow) -> None:
+    """A 'Game' menu with one radio entry per game; only installed ones enabled.
+
+    Stashes the actions on the window so it can re-sync the checkmark after a
+    cancelled switch.
+    """
+    game_menu = window.menuBar().addMenu(t("menu.game"))
+    group = QActionGroup(window)
+    group.setExclusive(True)
+    available = window.available_games()
+    actions: dict[Game, QAction] = {}
+    for game in Game:
+        action = QAction(GAME_DIRECTORY_NAME[game], window)
+        action.setCheckable(True)
+        action.setChecked(game is window._game)
+        action.setEnabled(game in available)
+        action.triggered.connect(lambda _checked=False, g=game: window._switch_game(g))
+        group.addAction(action)
+        game_menu.addAction(action)
+        actions[game] = action
+    window._game_actions = actions

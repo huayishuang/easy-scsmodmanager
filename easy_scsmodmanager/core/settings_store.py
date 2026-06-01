@@ -22,6 +22,7 @@ APP = "easy-scsmodmanager"
 
 _KEY_LANGUAGE = "language"
 _KEY_MAP_BASE_NAMES = "map_base_names"
+_KEY_ACTIVE_GAME = "active_game"
 
 
 def _documents_key(game: Game) -> str:
@@ -68,6 +69,17 @@ class SettingsStore:
 
     def set_install_override(self, game: Game, path: Path | None) -> None:
         _put(self._s, _install_key(game), str(path) if path else None)
+
+    def get_active_game(self) -> Game:
+        """The game the window should open on. Defaults to ETS2."""
+        raw = _clean(self._s.value(_KEY_ACTIVE_GAME))
+        for game in Game:
+            if game.value == raw:
+                return game
+        return Game.ETS2
+
+    def set_active_game(self, game: Game) -> None:
+        _put(self._s, _KEY_ACTIVE_GAME, game.value)
 
     def get_map_base_names(self) -> tuple[str, ...]:
         raw = _clean(self._s.value(_KEY_MAP_BASE_NAMES))

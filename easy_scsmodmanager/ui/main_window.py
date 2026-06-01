@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (
@@ -77,6 +78,9 @@ from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
 from easy_scsmodmanager.ui.widgets.profile_header import ProfileChoice, ProfileHeader
 from easy_scsmodmanager.utils.i18n import t
 
+if TYPE_CHECKING:
+    from PyQt6.QtGui import QAction
+
 log = logging.getLogger(__name__)
 
 GITHUB_ISSUES_URL = "https://github.com/Switch-Bros/easy-scsmodmanager/issues"
@@ -86,6 +90,9 @@ class MainWindow(QMainWindow):
     def __init__(self, *, game: Game = Game.ETS2, auto_scan: bool = True) -> None:
         super().__init__()
         self._game = game
+        self._settings = SettingsStore()
+        # game_id -> its checkable menu action, filled by build_menu_bar
+        self._game_actions: dict[Game, QAction] = {}
         self._install: GameInstall | None = None
         self._profile: Profile | None = None
         self._profile_sii_path: Path | None = None
@@ -241,6 +248,41 @@ class MainWindow(QMainWindow):
         store = SettingsStore()
         install_dir = store.get_install_override(self._game) or find_game_install_dir(self._game)
         ExtractDialog(install_dir, self).exec()
+
+    def available_games(self) -> set[Game]:
+        """Games we can actually open - a manual override or an auto-detect."""
+        available: set[Game] = set()
+        for game in Game:
+            if self._settings.get_documents_override(game) is not None or detect_game_installs(
+                game
+            ):
+                available.add(game)
+        return available
+
+    def _switch_game(self, game: Game) -> None:
+        if game is self._game:
+            return
+        # switching reloads a different profile; an unsaved edit would be lost
+        if self._save_btn.isEnabled():
+            choice = QMessageBox.question(
+                self,
+                t("dialog.switch_game.title"),
+                t("dialog.switch_game.body"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if choice != QMessageBox.StandardButton.Yes:
+                self._sync_game_menu()  # put the radio check back on the old game
+                return
+        self._game = game
+        self._settings.set_active_game(game)
+        self._save_btn.setEnabled(False)
+        self._sync_game_menu()
+        self._detect_install_and_scan()
+
+    def _sync_game_menu(self) -> None:
+        for game, action in self._game_actions.items():
+            action.setChecked(game is self._game)
 
     def _load_profiles(self) -> None:
         if self._install is None:

@@ -1,7 +1,6 @@
 {
   "app.title": "Easy SCSModManager",
   "app.placeholder.scaffold": "Easy SCSModManager - nur Gerüst. Phase 1 startet als nächstes.",
-
   "menu.file": "&Datei",
   "menu.file.refresh": "&Erneut scannen",
   "menu.file.clear_cache": "Scan-&Cache löschen",
@@ -16,7 +15,6 @@
   "menu.help": "&Hilfe",
   "menu.help.about": "&Über",
   "menu.help.report_issue": "Problem melden (GitHub)",
-
   "filter.search.placeholder": "Mods suchen nach Name, Autor, Kategorie...",
   "filter.workshop_only": "Nur Workshop",
   "filter.favorites_only": "Nur Favoriten",
@@ -30,7 +28,6 @@
   "filter.category.label": "Kategorie",
   "filter.category.all": "Alle Kategorien",
   "filter.help": "Hilfe",
-
   "category.truck": "Lkw",
   "category.trailer": "Auflieger",
   "category.interior": "Interieur",
@@ -49,7 +46,6 @@
   "category.walkers": "Walker",
   "category.prefabs": "Prefabs",
   "category.other": "Sonstiges",
-
   "load_order.map_base.world": "World Map Customization",
   "load_order.map_base.background": "Background Map",
   "load_order.map_base.loading": "Loading Screen",
@@ -65,7 +61,6 @@
   "load_order.trucks": "Lkw",
   "load_order.maps": "Szenerien (Maps)",
   "load_order.misplaced_tooltip": "Kategorie {category} - gehoert in eine andere Gruppe. Rechtsklick zum Verschieben.",
-
   "status.active": "Aktiv",
   "status.inactive": "Inaktiv",
   "status.incompatible": "Inkompatibel",
@@ -73,11 +68,9 @@
   "status.encrypted": "Verschlüsselt",
   "status.hashfs_no_reader": "HashFS-Reader fehlt",
   "status.missing_from_disk": "fehlt auf Platte",
-
   "mod_card.no_author": "Unbekannter Ersteller",
   "mod_card.favorite_tooltip": "Als Favorit markieren",
   "mod_card.info_tooltip": "Mod-Details anzeigen",
-
   "active_panel.title": "Aktive Mods",
   "active_panel.empty": "Keine aktiven Mods. Ziehe Mods von links nach hier.",
   "active_panel.count": "{count} aktiv",
@@ -89,7 +82,6 @@
   "active_panel.move_to_group": "Verschieben nach",
   "dialog.save.title": "Aktive Mods speichern",
   "dialog.save.body": "Vor dem Speichern ein Backup des Profils anlegen?\n\nAchtung: ETS2 darf jetzt NICHT laufen - das Spiel überschreibt die profile.sii sonst beim Beenden.",
-
   "profile_header.no_profile": "(kein Profil geladen)",
   "profile_header.level": "Level {level}",
   "profile_header.switch_profile": "Profil wechseln",
@@ -97,12 +89,10 @@
   "profile_header.backup_tooltip": "Zip-Backup des Profils anlegen (außerhalb von ETS2)",
   "profile_header.restore": "Wiederherstellen",
   "profile_header.restore_tooltip": "Profil aus einem früheren Backup wiederherstellen",
-
   "control_strip.add_all_tooltip": "Alle installierten Mods aktivieren",
   "control_strip.add_selected_tooltip": "Ausgewählte Mods aktivieren",
   "control_strip.remove_selected_tooltip": "Ausgewählte Mods deaktivieren",
   "control_strip.remove_all_tooltip": "Alle Mods deaktivieren",
-
   "status_bar.scanning": "Scanne Mods in {path}...",
   "status_bar.scan_done": "{total} Mods geladen ({active} aktiv, {errors} Fehler) in {elapsed:.1f}s",
   "status_bar.no_install": "Kein Game-Install gefunden. Prüfe Einstellungen.",
@@ -116,7 +106,6 @@
   "status_bar.no_backups": "Noch keine Backups für dieses Profil. Erst sichern.",
   "status_bar.restore_done": "Wiederhergestellt aus Backup vom {label}.",
   "status_bar.restore_failed": "Wiederherstellung fehlgeschlagen: {reason}",
-
   "dialog.info.title": "Mod-Details",
   "dialog.info.author": "Ersteller",
   "dialog.info.version": "Version",
@@ -124,7 +113,6 @@
   "dialog.info.description": "Beschreibung",
   "dialog.info.no_description": "Keine Beschreibung vorhanden.",
   "dialog.info.close": "Schließen",
-
   "dialog.settings.title": "Einstellungen",
   "dialog.settings.save": "Speichern",
   "dialog.settings.cancel": "Abbrechen",
@@ -140,7 +128,6 @@
   "settings.paths.install_heading": "Spiel-Ordner (base.scs, def.scs)",
   "settings.paths.ets2_install": "ETS2 Spiel-Ordner",
   "settings.paths.ats_install": "ATS Spiel-Ordner",
-
   "settings.map_base.heading": "Map-Basis (immer ganz oben im obersten Block)",
   "settings.map_base.hint": "Mods, deren Name einen dieser Begriffe enthält, landen automatisch im obersten Block (z.B. Hintergrundkarte, Ladebildschirm).",
   "settings.map_base.add": "Hinzufügen",
@@ -148,7 +135,6 @@
   "settings.map_base.reset": "Standard",
   "settings.map_base.add_title": "Map-Basis-Name hinzufügen",
   "settings.map_base.add_label": "Teil des Mod-Namens:",
-
   "map_combo.export": "MapCombo exportieren...",
   "map_combo.import": "MapCombo importieren...",
   "map_combo.save_caption": "MapCombo speichern",
@@ -164,14 +150,11 @@
   "map_combo.outdated_title": "Update verfügbar",
   "map_combo.outdated_body": "Import erledigt. Diese Maps wurden mit einer neueren Version gebaut:",
   "map_combo.outdated_row": "• {name}: du hast {local}, die Combo nutzte {combo}",
-
   "conflict.tooltip_header": "Überschneidung mit anderen aktiven Mods (Load-Order entscheidet):",
   "conflict.tooltip_row": "• {mod} (z.B. {file})",
-
   "compat.incompatible_tooltip": "Laut Mod nicht für deine Spielversion gebaut. Nutzung auf eigenes Risiko möglich.",
   "map_combo.exported": "MapCombo exportiert: {count} Maps",
   "map_combo.imported": "MapCombo importiert: {count} Maps neu angeordnet",
-
   "menu.tools.extract": "SCS-Dateien &entpacken...",
   "dialog.extract.title": "SCS-Dateien entpacken",
   "dialog.extract.archives_heading": "Archive im Spiel-Ordner",
@@ -188,7 +171,6 @@
   "dialog.extract.progress": "{name}  -  {done}/{total}",
   "dialog.extract.done": "Fertig: {extracted} Dateien aus {archives} Archiv(en) entpackt ({failed} übersprungen).",
   "dialog.extract.cancelled": "Abgebrochen ({extracted} Dateien entpackt).",
-
   "dialog.restore.title": "Profil wiederherstellen",
   "dialog.restore.header": "{count} Backup(s) für Profil '{profile}'",
   "dialog.restore.warning": "Achtung: ETS2 darf jetzt NICHT laufen. Das Spiel überschreibt sonst beim Beenden die wiederhergestellte profile.sii.",
@@ -198,11 +180,12 @@
   "dialog.restore.confirm_body": "Das aktuelle Profil wird mit dem Backup vom {label} überschrieben. Dateien die nicht im Backup waren bleiben unangetastet.",
   "dialog.restore.delete_confirm_title": "Backup löschen?",
   "dialog.restore.delete_confirm_body": "Backup vom {label} dauerhaft löschen?",
-
   "main_window.confirm_changes": "Änderungen bestätigen",
   "main_window.discard_changes": "Änderungen verwerfen",
   "main_window.unsaved_changes": "Du hast ungespeicherte Mod-Listen-Änderungen. Erst bestätigen oder verwerfen.",
-
   "dialog.about.title": "Über Easy SCSModManager",
-  "dialog.about.body": "Plattformübergreifender Mod- und Profile-Manager für ETS2 und ATS.\nVersion {version}\nGPL-3.0-or-later"
+  "dialog.about.body": "Plattformübergreifender Mod- und Profile-Manager für ETS2 und ATS.\nVersion {version}\nGPL-3.0-or-later",
+  "menu.game": "&Spiel",
+  "dialog.switch_game.title": "Spiel wechseln",
+  "dialog.switch_game.body": "Es gibt ungespeicherte Änderungen an der aktiven Liste. Beim Wechsel des Spiels gehen sie verloren.\n\nTrotzdem wechseln?"
 }

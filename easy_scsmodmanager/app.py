@@ -33,10 +33,11 @@ def run(argv: list[str]) -> int:
     app.setApplicationName(__app_name__)
     app.setOrganizationName("Switch-Bros")
 
-    _apply_saved_language(SettingsStore())
+    store = SettingsStore()
+    _apply_saved_language(store)
     FontHelper.apply_app_font(app, size=10)
 
-    window = MainWindow(auto_scan=True)
+    window = MainWindow(game=store.get_active_game(), auto_scan=True)
     window.show()
     return app.exec()
 

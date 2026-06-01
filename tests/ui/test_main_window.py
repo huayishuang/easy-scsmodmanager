@@ -19,6 +19,26 @@ def test_main_window_constructs(qtbot) -> None:
     assert window.minimumWidth() >= 1000
 
 
+def test_switch_game_changes_game_persists_and_rescans(qtbot, tmp_path, monkeypatch) -> None:
+    from PyQt6.QtCore import QSettings
+
+    from easy_scsmodmanager.core.game_paths import Game
+    from easy_scsmodmanager.core.settings_store import SettingsStore
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    # isolate settings from the real registry and stub the rescan
+    window._settings = SettingsStore(QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat))
+    rescans: list[Game] = []
+    monkeypatch.setattr(window, "_detect_install_and_scan", lambda: rescans.append(window._game))
+
+    window._switch_game(Game.ATS)
+
+    assert window._game is Game.ATS
+    assert window._settings.get_active_game() is Game.ATS
+    assert rescans == [Game.ATS]
+
+
 _PROFILE_TEMPLATE = (
     "SiiNunit\n{\nuser_profile : _nameless.x {\n" ' profile_name: "T"\n active_mods: 0\n}\n}\n'
 )

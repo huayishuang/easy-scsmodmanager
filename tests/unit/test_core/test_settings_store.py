@@ -56,3 +56,17 @@ def test_map_base_names_default_and_round_trip(tmp_path: Path) -> None:
     assert s.get_map_base_names() == DEFAULT_MAP_BASE_NAMES
     s.set_map_base_names(["Foo", "Bar"])
     assert s.get_map_base_names() == ("Foo", "Bar")
+
+
+def test_active_game_defaults_to_ets2(store: SettingsStore) -> None:
+    assert store.get_active_game() == Game.ETS2
+
+
+def test_active_game_round_trip(store: SettingsStore) -> None:
+    store.set_active_game(Game.ATS)
+    assert store.get_active_game() == Game.ATS
+
+
+def test_active_game_ignores_a_garbage_value(store: SettingsStore) -> None:
+    store._s.setValue("active_game", "nonsense")
+    assert store.get_active_game() == Game.ETS2

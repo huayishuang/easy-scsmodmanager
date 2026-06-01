@@ -1,7 +1,6 @@
 {
   "app.title": "Easy SCSModManager",
   "app.placeholder.scaffold": "Easy SCSModManager - skeleton only. Phase 1 starts next.",
-
   "menu.file": "&File",
   "menu.file.refresh": "&Refresh scan",
   "menu.file.clear_cache": "&Clear scan cache",
@@ -16,7 +15,6 @@
   "menu.help": "&Help",
   "menu.help.about": "&About",
   "menu.help.report_issue": "Report an issue (GitHub)",
-
   "filter.search.placeholder": "Search mods by name, author, category...",
   "filter.workshop_only": "Workshop only",
   "filter.favorites_only": "Favorites only",
@@ -30,7 +28,6 @@
   "filter.category.label": "Category",
   "filter.category.all": "All categories",
   "filter.help": "Help",
-
   "category.truck": "Trucks",
   "category.trailer": "Trailers",
   "category.interior": "Interiors",
@@ -49,7 +46,6 @@
   "category.walkers": "Walkers",
   "category.prefabs": "Prefabs",
   "category.other": "Other",
-
   "load_order.map_base.world": "World Map Customization",
   "load_order.map_base.background": "Background Map",
   "load_order.map_base.loading": "Loading Screen",
@@ -65,7 +61,6 @@
   "load_order.trucks": "Trucks",
   "load_order.maps": "Maps",
   "load_order.misplaced_tooltip": "Category {category} - belongs in a different group. Right-click to move it.",
-
   "status.active": "Active",
   "status.inactive": "Inactive",
   "status.incompatible": "Incompatible",
@@ -73,11 +68,9 @@
   "status.encrypted": "Encrypted",
   "status.hashfs_no_reader": "HashFS reader unavailable",
   "status.missing_from_disk": "missing from disk",
-
   "mod_card.no_author": "Unknown author",
   "mod_card.favorite_tooltip": "Toggle favorite",
   "mod_card.info_tooltip": "Show mod details",
-
   "active_panel.title": "Active mods",
   "active_panel.empty": "No active mods. Drag mods from the left to enable.",
   "active_panel.count": "{count} active",
@@ -89,7 +82,6 @@
   "active_panel.move_to_group": "Move to",
   "dialog.save.title": "Save active mods",
   "dialog.save.body": "Back up the profile before saving?\n\nNote: ETS2 must NOT be running - the game would otherwise overwrite profile.sii on exit.",
-
   "profile_header.no_profile": "(no profile loaded)",
   "profile_header.level": "Level {level}",
   "profile_header.switch_profile": "Switch profile",
@@ -97,12 +89,10 @@
   "profile_header.backup_tooltip": "Create a zip backup of the profile (outside the ETS2 tree)",
   "profile_header.restore": "Restore",
   "profile_header.restore_tooltip": "Restore the profile from an earlier backup",
-
   "control_strip.add_all_tooltip": "Activate all installed mods",
   "control_strip.add_selected_tooltip": "Activate selected mods",
   "control_strip.remove_selected_tooltip": "Deactivate selected mods",
   "control_strip.remove_all_tooltip": "Deactivate all mods",
-
   "status_bar.scanning": "Scanning mods in {path}...",
   "status_bar.scan_done": "{total} mods loaded ({active} active, {errors} errors) in {elapsed:.1f}s",
   "status_bar.no_install": "No game install detected. Check Settings.",
@@ -116,7 +106,6 @@
   "status_bar.no_backups": "No backups yet for this profile - create one first.",
   "status_bar.restore_done": "Restored from backup {label}.",
   "status_bar.restore_failed": "Restore failed: {reason}",
-
   "dialog.info.title": "Mod details",
   "dialog.info.author": "Author",
   "dialog.info.version": "Version",
@@ -124,7 +113,6 @@
   "dialog.info.description": "Description",
   "dialog.info.no_description": "No description available.",
   "dialog.info.close": "Close",
-
   "dialog.settings.title": "Settings",
   "dialog.settings.save": "Save",
   "dialog.settings.cancel": "Cancel",
@@ -140,7 +128,6 @@
   "settings.paths.install_heading": "Game folder (base.scs, def.scs)",
   "settings.paths.ets2_install": "ETS2 game folder",
   "settings.paths.ats_install": "ATS game folder",
-
   "settings.map_base.heading": "Map base (always pinned to the top block)",
   "settings.map_base.hint": "Mods whose name contains one of these terms land in the top block automatically (e.g. background map, loading screen).",
   "settings.map_base.add": "Add",
@@ -148,7 +135,6 @@
   "settings.map_base.reset": "Default",
   "settings.map_base.add_title": "Add map-base name",
   "settings.map_base.add_label": "Part of the mod name:",
-
   "map_combo.export": "Export MapCombo...",
   "map_combo.import": "Import MapCombo...",
   "map_combo.save_caption": "Save MapCombo",
@@ -164,14 +150,11 @@
   "map_combo.outdated_title": "Update available",
   "map_combo.outdated_body": "Import done. These maps were built with a newer version:",
   "map_combo.outdated_row": "• {name}: you have {local}, the combo used {combo}",
-
   "conflict.tooltip_header": "Overlaps with other active mods (load order decides):",
   "conflict.tooltip_row": "• {mod} (e.g. {file})",
-
   "compat.incompatible_tooltip": "The mod says it is not built for your game version. You can still use it at your own risk.",
   "map_combo.exported": "MapCombo exported: {count} maps",
   "map_combo.imported": "MapCombo imported: {count} maps reordered",
-
   "menu.tools.extract": "&Extract SCS files...",
   "dialog.extract.title": "Extract SCS files",
   "dialog.extract.archives_heading": "Archives in the game folder",
@@ -188,7 +171,6 @@
   "dialog.extract.progress": "{name}  -  {done}/{total}",
   "dialog.extract.done": "Done: {extracted} files from {archives} archive(s) ({failed} skipped).",
   "dialog.extract.cancelled": "Cancelled ({extracted} files extracted).",
-
   "dialog.restore.title": "Restore profile",
   "dialog.restore.header": "{count} backup(s) for profile '{profile}'",
   "dialog.restore.warning": "Warning: ETS2 must NOT be running. The game would overwrite the restored profile.sii when it exits.",
@@ -198,11 +180,12 @@
   "dialog.restore.confirm_body": "The current profile will be overwritten with the backup from {label}. Files that were not in the backup stay untouched.",
   "dialog.restore.delete_confirm_title": "Delete backup?",
   "dialog.restore.delete_confirm_body": "Permanently delete the backup from {label}?",
-
   "main_window.confirm_changes": "Apply changes",
   "main_window.discard_changes": "Discard changes",
   "main_window.unsaved_changes": "You have unsaved mod-list changes. Apply or discard them first.",
-
   "dialog.about.title": "About Easy SCSModManager",
-  "dialog.about.body": "Cross-platform mod and profile manager for ETS2 and ATS.\nVersion {version}\nGPL-3.0-or-later"
+  "dialog.about.body": "Cross-platform mod and profile manager for ETS2 and ATS.\nVersion {version}\nGPL-3.0-or-later",
+  "menu.game": "&Game",
+  "dialog.switch_game.title": "Switch game",
+  "dialog.switch_game.body": "There are unsaved changes to the active list. Switching the game will discard them.\n\nSwitch anyway?"
 }
