@@ -17,13 +17,10 @@ Layout::
 from __future__ import annotations
 
 import logging
-import webbrowser
 from pathlib import Path
 
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
-    QApplication,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
@@ -54,14 +51,8 @@ from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
-    workshop_id_for_path,
 )
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
-from easy_scsmodmanager.services.profile_backup import (
-    create_backup,
-    list_backups,
-    restore_backup,
-)
 from easy_scsmodmanager.services.profile_reader import (
     ActiveMod,
     Profile,
@@ -71,14 +62,15 @@ from easy_scsmodmanager.services.profile_reader import (
 )
 from easy_scsmodmanager.services.profile_writer import save_active_mods
 from easy_scsmodmanager.ui.controllers.map_combo_controller import MapComboController
+from easy_scsmodmanager.ui.controllers.profile_backup_controller import ProfileBackupController
+from easy_scsmodmanager.ui.controllers.workshop_fetch_controller import WorkshopFetchController
 from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
 from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
-from easy_scsmodmanager.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
 from easy_scsmodmanager.ui.dialogs.settings_dialog import SettingsDialog
+from easy_scsmodmanager.ui.menu.main_menu import build_menu_bar
 from easy_scsmodmanager.ui.mod_presenter import ModPresenter
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.threads.scan_thread import ScanResult, ScanThread
-from easy_scsmodmanager.ui.threads.workshop_fetch_thread import WorkshopFetchThread
 from easy_scsmodmanager.ui.widgets.active_mod_list import ActiveModList
 from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, FilterToolbar
 from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
@@ -108,7 +100,6 @@ class MainWindow(QMainWindow):
         self._map_base_names = SettingsStore().get_map_base_names()
         self._game_version: str | None = None
         self._scan_thread: ScanThread | None = None
-        self._workshop_thread: WorkshopFetchThread | None = None
         # derives display data (names, icons, categories, conflicts, filtering)
         self._presenter = ModPresenter(
             cache=self._cache,
@@ -116,13 +107,19 @@ class MainWindow(QMainWindow):
             overrides=self._overrides,
             group_overrides=self._group_overrides,
         )
+        self._workshop = WorkshopFetchController(
+            cache=self._cache,
+            presenter=self._presenter,
+            on_updated=self._refresh_all,
+            show_status=self.statusBar().showMessage,
+        )
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
         self.setMinimumSize(QSize(1280, 760))
         self.resize(QSize(1382, 1125))  # open roomy; the WM clamps to the screen
         self.setStyleSheet(f"QMainWindow {{ background-color: {Theme.BACKGROUND}; }}")
 
-        self._build_menu_bar()
+        build_menu_bar(self)
         self._build_central()
         self.statusBar().setStyleSheet(f"color: {Theme.TEXT_DIM};")
 
@@ -132,43 +129,6 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
     # building
     # ------------------------------------------------------------------ #
-
-    def _build_menu_bar(self) -> None:
-        menu_bar = self.menuBar()
-
-        file_menu = menu_bar.addMenu(t("menu.file"))
-        refresh = QAction(t("menu.file.refresh"), self)
-        refresh.setShortcut("F5")
-        refresh.triggered.connect(self._on_refresh)
-        file_menu.addAction(refresh)
-
-        clear_cache = QAction(t("menu.file.clear_cache"), self)
-        clear_cache.triggered.connect(self._on_clear_cache)
-        file_menu.addAction(clear_cache)
-
-        settings = QAction(t("menu.file.settings"), self)
-        settings.triggered.connect(self._on_open_settings)
-        file_menu.addAction(settings)
-
-        file_menu.addSeparator()
-        quit_action = QAction(t("menu.file.quit"), self)
-        quit_action.setShortcut("Ctrl+Q")
-        quit_action.triggered.connect(QApplication.instance().quit)
-        file_menu.addAction(quit_action)
-
-        tools_menu = menu_bar.addMenu(t("menu.tools"))
-        extract = QAction(t("menu.tools.extract"), self)
-        extract.triggered.connect(self._on_open_extract)
-        tools_menu.addAction(extract)
-
-        help_menu = menu_bar.addMenu(t("menu.help"))
-        about = QAction(t("menu.help.about"), self)
-        about.triggered.connect(self._show_about)
-        help_menu.addAction(about)
-
-        issues = QAction(t("menu.help.report_issue"), self)
-        issues.triggered.connect(lambda: webbrowser.open(GITHUB_ISSUES_URL))
-        help_menu.addAction(issues)
 
     def _build_central(self) -> None:
         central = QWidget()
@@ -199,9 +159,16 @@ class MainWindow(QMainWindow):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(8)
         self._profile_header = ProfileHeader()
+        self._backup = ProfileBackupController(
+            parent=self,
+            current_path=lambda: self._profile_sii_path,
+            restore_name=self._restore_display_name,
+            show_status=self.statusBar().showMessage,
+            on_restored=self._reload_after_restore,
+        )
         self._profile_header.profile_selected.connect(self._on_profile_chosen)
-        self._profile_header.backup_requested.connect(self._on_backup_requested)
-        self._profile_header.restore_requested.connect(self._on_restore_requested)
+        self._profile_header.backup_requested.connect(self._backup.backup)
+        self._profile_header.restore_requested.connect(self._backup.restore)
         self._active_list = ActiveModList()
         self._active_list.mod_focus_requested.connect(self._on_active_mod_focus)
         self._active_list.order_changed.connect(self._on_active_order_changed)
@@ -363,7 +330,7 @@ class MainWindow(QMainWindow):
                 elapsed=result.elapsed_seconds,
             )
         )
-        self._kickoff_workshop_fetch()
+        self._workshop.kickoff(self._all_mods)
         if self._combo.has_pending():
             self._combo.apply_pending()
 
@@ -502,55 +469,9 @@ class MainWindow(QMainWindow):
         self._save_btn.setEnabled(False)
         self.statusBar().showMessage(t("status_bar.saved"))
 
-    def _kickoff_workshop_fetch(self) -> None:
-        """Start the Steam Workshop fetcher for mods we lack local data for.
-
-        Targets workshop mods that either have no icon yet or no parsed
-        manifest at all (encrypted map mods fall in the second bucket).
-        Skips mods that already have everything from local scan.
-        """
-        if self._workshop_thread is not None and self._workshop_thread.isRunning():
-            return
-
-        workshop_ids: list[str] = []
-        seen: set[str] = set()
-        for mod in self._all_mods:
-            wid = workshop_id_for_path(mod.path)
-            if wid is None or wid in seen:
-                continue
-            entry = self._cache.get(mod.path)
-            has_icon = bool(entry and entry.icon_bytes)
-            has_manifest = mod.manifest is not None
-            # also fetch when we still have no real name (workshop mods whose
-            # manifest carries no display_name and that aren't in the profile)
-            has_name = self._presenter.display_name_for(mod) != mod.path.stem
-            if has_icon and has_manifest and has_name:
-                continue
-            seen.add(wid)
-            workshop_ids.append(wid)
-
-        if not workshop_ids:
-            return
-
-        self._workshop_thread = WorkshopFetchThread(workshop_ids, self._cache.path)
-        self._workshop_thread.preview_fetched.connect(self._on_workshop_preview_ready)
-        self._workshop_thread.finished_with_summary.connect(self._on_workshop_fetch_done)
-        self._workshop_thread.start()
-
-    def _on_workshop_preview_ready(self, _workshop_id: str) -> None:
-        # Bulk-refresh the grid + active list once per N updates would be
-        # nicer; for now a full refresh on every fetched preview keeps the
-        # code simple and stays cheap enough on 100-ish workshop mods.
+    def _refresh_all(self) -> None:
         self._refresh_grid()
         self._refresh_active_list()
-
-    def _on_workshop_fetch_done(self, downloaded: int) -> None:
-        if downloaded == 0:
-            return
-        self.statusBar().showMessage(
-            t("status_bar.workshop_fetched", count=downloaded),
-            5000,
-        )
 
     def _on_active_mod_focus(self, active_mod: ActiveMod) -> None:
         """Clicking a row in the active list scrolls to + selects the
@@ -571,50 +492,19 @@ class MainWindow(QMainWindow):
             self._refresh_grid()
             self._grid.focus_mod(match)
 
-    def _on_backup_requested(self) -> None:
-        if self._profile_sii_path is None:
-            return
-        try:
-            entry = create_backup(self._profile_sii_path)
-        except Exception as exc:
-            log.warning("backup failed: %s", exc)
-            self.statusBar().showMessage(t("status_bar.backup_failed", reason=str(exc)), 5000)
-            return
-        self.statusBar().showMessage(
-            t("status_bar.backup_created", label=entry.label),
-            5000,
-        )
-
-    def _on_restore_requested(self) -> None:
-        # must work even when the profile no longer parses - that's exactly
-        # when a user needs to restore; fall back to the decoded dir name
-        if self._profile_sii_path is None:
-            return
-        backups = list_backups(self._profile_sii_path)
-        if not backups:
-            self.statusBar().showMessage(t("status_bar.no_backups"), 5000)
-            return
+    def _restore_display_name(self) -> str:
+        # falls back to the decoded dir name when the profile no longer parses
         if self._profile is not None:
-            name = self._profile.profile_name or self._profile.dir_name
-        else:
-            name = decode_profile_dir_name(self._profile_sii_path.parent.name)
-        dialog = RestoreBackupDialog(name, backups, parent=self)
-        if dialog.exec() != dialog.DialogCode.Accepted or dialog.selected is None:
-            return
-        try:
-            restore_backup(dialog.selected, self._profile_sii_path)
-        except Exception as exc:
-            log.warning("restore failed: %s", exc)
-            self.statusBar().showMessage(t("status_bar.restore_failed", reason=str(exc)), 5000)
-            return
-        # Re-read the profile so the active list reflects the restored state.
+            return self._profile.profile_name or self._profile.dir_name
+        if self._profile_sii_path is not None:
+            return decode_profile_dir_name(self._profile_sii_path.parent.name)
+        return ""
+
+    def _reload_after_restore(self) -> None:
+        # re-read the profile so the active list reflects the restored state
         self._load_profiles()
         self._refresh_active_list()
         self._refresh_grid()
-        self.statusBar().showMessage(
-            t("status_bar.restore_done", label=dialog.selected.label),
-            5000,
-        )
 
     def _on_profile_chosen(self, choice: ProfileChoice) -> None:
         if choice.sii_path == self._profile_sii_path:
@@ -649,8 +539,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802
         if self._scan_thread is not None and self._scan_thread.isRunning():
             self._scan_thread.wait(5000)
-        if self._workshop_thread is not None and self._workshop_thread.isRunning():
-            self._workshop_thread.wait(5000)
+        self._workshop.shutdown(5000)
         self._cache.close()
         self._overrides.close()
         self._group_overrides.close()

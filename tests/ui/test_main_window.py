@@ -187,8 +187,11 @@ def test_restore_reachable_when_profile_failed_to_parse(qtbot, tmp_path, monkeyp
     window._profile_sii_path = tmp_path / "profile.sii"
     window._profile = None  # corrupt / unparseable
 
-    monkeypatch.setattr("easy_scsmodmanager.ui.main_window.list_backups", lambda p: [])
-    window._on_restore_requested()
+    monkeypatch.setattr(
+        "easy_scsmodmanager.ui.controllers.profile_backup_controller.list_backups",
+        lambda p: [],
+    )
+    window._backup.restore()
 
     # reached the "no backups" branch (status set) instead of silently returning
     assert window.statusBar().currentMessage() != ""
