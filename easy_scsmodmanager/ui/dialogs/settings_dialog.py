@@ -35,12 +35,15 @@ from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import available_languages, current_language, t
 
 DOCUMENTS = "documents"
+WORKSHOP = "workshop"
 INSTALL = "install"
 
 # (game, kind, label key)
 _PATH_FIELDS = (
     (Game.ETS2, DOCUMENTS, "settings.paths.ets2_documents"),
     (Game.ATS, DOCUMENTS, "settings.paths.ats_documents"),
+    (Game.ETS2, WORKSHOP, "settings.paths.ets2_workshop"),
+    (Game.ATS, WORKSHOP, "settings.paths.ats_workshop"),
     (Game.ETS2, INSTALL, "settings.paths.ets2_install"),
     (Game.ATS, INSTALL, "settings.paths.ats_install"),
 )
@@ -77,11 +80,15 @@ class SettingsDialog(QDialog):
     def _load(self, game: Game, kind: str) -> Path | None:
         if kind == DOCUMENTS:
             return self._store.get_documents_override(game)
+        if kind == WORKSHOP:
+            return self._store.get_workshop_override(game)
         return self._store.get_install_override(game)
 
     def _save(self, game: Game, kind: str, path: Path | None) -> None:
         if kind == DOCUMENTS:
             self._store.set_documents_override(game, path)
+        elif kind == WORKSHOP:
+            self._store.set_workshop_override(game, path)
         else:
             self._store.set_install_override(game, path)
 
@@ -105,6 +112,8 @@ class SettingsDialog(QDialog):
 
         root.addWidget(self._heading("settings.paths.heading"))
         self._add_rows(root, DOCUMENTS)
+        root.addWidget(self._heading("settings.paths.workshop_heading"))
+        self._add_rows(root, WORKSHOP)
         root.addWidget(self._heading("settings.paths.install_heading"))
         self._add_rows(root, INSTALL)
 

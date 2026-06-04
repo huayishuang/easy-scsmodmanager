@@ -8,7 +8,12 @@ from pytestqt.qtbot import QtBot
 from easy_scsmodmanager.core.game_paths import Game
 from easy_scsmodmanager.core.map_base_mods import DEFAULT_MAP_BASE_NAMES
 from easy_scsmodmanager.core.settings_store import SettingsStore
-from easy_scsmodmanager.ui.dialogs.settings_dialog import DOCUMENTS, INSTALL, SettingsDialog
+from easy_scsmodmanager.ui.dialogs.settings_dialog import (
+    DOCUMENTS,
+    INSTALL,
+    WORKSHOP,
+    SettingsDialog,
+)
 
 
 def _store(tmp_path: Path) -> SettingsStore:
@@ -44,6 +49,29 @@ def test_save_writes_language_and_paths(qtbot: QtBot, tmp_path: Path) -> None:
     assert store.get_language() == "de"
     assert store.get_documents_override(Game.ETS2) == tmp_path / "docs"
     assert store.get_install_override(Game.ETS2) == tmp_path / "game"
+
+
+def test_loads_existing_workshop_override(qtbot: QtBot, tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    workshop = tmp_path / "ws"
+    store.set_workshop_override(Game.ETS2, workshop)
+
+    dialog = SettingsDialog(store)
+    qtbot.addWidget(dialog)
+
+    assert dialog._edits[(Game.ETS2, WORKSHOP)].text() == str(workshop)
+    assert dialog._edits[(Game.ATS, WORKSHOP)].text() == ""  # untouched -> auto
+
+
+def test_save_writes_workshop_override(qtbot: QtBot, tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    dialog = SettingsDialog(store)
+    qtbot.addWidget(dialog)
+
+    dialog._paths[(Game.ETS2, WORKSHOP)] = tmp_path / "ws"  # simulate browse
+    dialog.accept()
+
+    assert store.get_workshop_override(Game.ETS2) == tmp_path / "ws"
 
 
 def test_reset_clears_an_existing_override(qtbot: QtBot, tmp_path: Path) -> None:

@@ -125,6 +125,43 @@ def find_game_install_dir(
     return None
 
 
+def detect_workshop_dir(
+    game: Game,
+    steam_libraries: list[Path] | None = None,
+) -> Path | None:
+    """First existing Workshop content dir for the game across Steam libraries.
+
+    Workshop mods live under ``steamapps/workshop/content/<app-id>`` no matter
+    how the game itself is installed (native or Proton), so this works for
+    Windows, macOS and Linux alike. Returns None when no library holds them.
+    """
+    if steam_libraries is None:
+        steam_libraries = discover_steam_libraries()
+    for lib in steam_libraries:
+        workshop = workshop_dir_path(lib, game)
+        if workshop.is_dir():
+            return workshop
+    return None
+
+
+def install_for_overrides(
+    game: Game,
+    documents_dir: Path,
+    workshop_override: Path | None,
+    steam_libraries: list[Path] | None = None,
+) -> GameInstall:
+    """Build a manual install, auto-detecting Workshop when it is not pinned.
+
+    A manual documents path must not switch the Workshop off: when the user
+    has not set an explicit Workshop override, fall back to auto-detection
+    rather than leaving it None.
+    """
+    workshop = workshop_override
+    if workshop is None:
+        workshop = detect_workshop_dir(game, steam_libraries)
+    return game_install_from_override(game, documents_dir, workshop)
+
+
 def game_install_from_override(
     game: Game,
     documents_dir: Path,
@@ -167,7 +204,7 @@ def detect_game_installs(
                 game=game,
                 kind=native_kind,
                 documents_dir=native_documents,
-                workshop_dir=None,
+                workshop_dir=detect_workshop_dir(game, steam_libraries),
             )
         )
 

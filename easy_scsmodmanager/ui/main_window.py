@@ -47,7 +47,7 @@ from easy_scsmodmanager.core.game_paths import (
     InstallKind,
     detect_game_installs,
     find_game_install_dir,
-    game_install_from_override,
+    install_for_overrides,
 )
 from easy_scsmodmanager.core.game_version import read_game_version
 from easy_scsmodmanager.core.settings_store import SettingsStore
@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
         documents = store.get_documents_override(self._game)
         if documents is not None:
             workshop = store.get_workshop_override(self._game)
-            return game_install_from_override(self._game, documents, workshop)
+            return install_for_overrides(self._game, documents, workshop)
         installs = detect_game_installs(self._game)
         if not installs:
             return None

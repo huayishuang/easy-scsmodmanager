@@ -11,8 +11,10 @@ from easy_scsmodmanager.core.game_paths import (
     GameInstall,
     InstallKind,
     detect_game_installs,
+    detect_workshop_dir,
     find_game_install_dir,
     game_install_from_override,
+    install_for_overrides,
     linux_native_documents,
     proton_documents_path,
     windows_documents,
@@ -198,6 +200,66 @@ def test_detect_game_installs_finds_native_and_multiple_proton(
     kinds = [i.kind for i in installs]
     assert kinds.count(InstallKind.LINUX_NATIVE) == 1
     assert kinds.count(InstallKind.PROTON) == 2
+
+
+def test_detect_workshop_dir_returns_first_existing_library(tmp_path: Path) -> None:
+    lib_a = tmp_path / "lib_a"
+    lib_b = tmp_path / "lib_b"
+    workshop_b = workshop_dir_path(lib_b, Game.ETS2)
+    workshop_b.mkdir(parents=True)
+
+    assert detect_workshop_dir(Game.ETS2, [lib_a, lib_b]) == workshop_b
+
+
+def test_detect_workshop_dir_none_when_no_library_has_it(tmp_path: Path) -> None:
+    assert detect_workshop_dir(Game.ETS2, [tmp_path / "lib"]) is None
+
+
+def test_detect_game_installs_native_gets_workshop_from_libraries(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+    native = tmp_path / ".local" / "share" / "Euro Truck Simulator 2"
+    native.mkdir(parents=True)
+    lib = tmp_path / "lib"
+    workshop = workshop_dir_path(lib, Game.ETS2)
+    workshop.mkdir(parents=True)
+
+    installs = detect_game_installs(Game.ETS2, steam_libraries=[lib])
+
+    native_install = next(i for i in installs if i.kind is InstallKind.LINUX_NATIVE)
+    assert native_install.workshop_dir == workshop
+
+
+def test_install_for_overrides_autodetects_workshop_when_unset(tmp_path: Path) -> None:
+    lib = tmp_path / "lib"
+    workshop = workshop_dir_path(lib, Game.ETS2)
+    workshop.mkdir(parents=True)
+    docs = tmp_path / "docs"
+
+    install = install_for_overrides(Game.ETS2, docs, None, steam_libraries=[lib])
+
+    assert install.documents_dir == docs
+    assert install.workshop_dir == workshop
+
+
+def test_install_for_overrides_keeps_explicit_workshop(tmp_path: Path) -> None:
+    explicit = tmp_path / "my_workshop"
+
+    install = install_for_overrides(
+        Game.ETS2, tmp_path / "docs", explicit, steam_libraries=[tmp_path / "lib"]
+    )
+
+    assert install.workshop_dir == explicit
+
+
+def test_install_for_overrides_none_when_nothing_found(tmp_path: Path) -> None:
+    install = install_for_overrides(
+        Game.ETS2, tmp_path / "docs", None, steam_libraries=[tmp_path / "lib"]
+    )
+
+    assert install.workshop_dir is None
 
 
 def test_game_install_has_convenience_paths(tmp_path: Path) -> None:
