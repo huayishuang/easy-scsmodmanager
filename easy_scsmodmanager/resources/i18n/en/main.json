@@ -187,5 +187,6 @@
   "dialog.about.body": "Cross-platform mod and profile manager for ETS2 and ATS.\nVersion {version}\nGPL-3.0-or-later",
   "menu.game": "&Game",
   "dialog.switch_game.title": "Switch game",
-  "dialog.switch_game.body": "There are unsaved changes to the active list. Switching the game will discard them.\n\nSwitch anyway?"
+  "dialog.switch_game.body": "There are unsaved changes to the active list. Switching the game will discard them.\n\nSwitch anyway?",
+  "menu.tools.open_log_folder": "Open &Log Folder"
 }

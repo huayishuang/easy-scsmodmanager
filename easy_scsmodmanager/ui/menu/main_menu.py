@@ -52,6 +52,10 @@ def build_menu_bar(window: MainWindow) -> None:
     extract.triggered.connect(window._on_open_extract)
     tools_menu.addAction(extract)
 
+    open_logs = QAction(t("menu.tools.open_log_folder"), window)
+    open_logs.triggered.connect(window._on_open_log_folder)
+    tools_menu.addAction(open_logs)
+
     help_menu = menu_bar.addMenu(t("menu.help"))
     about = QAction(t("menu.help.about"), window)
     about.triggered.connect(window._show_about)

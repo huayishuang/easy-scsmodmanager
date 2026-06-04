@@ -187,5 +187,6 @@
   "dialog.about.body": "Plattformübergreifender Mod- und Profile-Manager für ETS2 und ATS.\nVersion {version}\nGPL-3.0-or-later",
   "menu.game": "&Spiel",
   "dialog.switch_game.title": "Spiel wechseln",
-  "dialog.switch_game.body": "Es gibt ungespeicherte Änderungen an der aktiven Liste. Beim Wechsel des Spiels gehen sie verloren.\n\nTrotzdem wechseln?"
+  "dialog.switch_game.body": "Es gibt ungespeicherte Änderungen an der aktiven Liste. Beim Wechsel des Spiels gehen sie verloren.\n\nTrotzdem wechseln?",
+  "menu.tools.open_log_folder": "&Log-Ordner öffnen"
 }

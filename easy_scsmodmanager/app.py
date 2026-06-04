@@ -7,7 +7,7 @@ from importlib import resources
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
-from easy_scsmodmanager import __app_name__
+from easy_scsmodmanager import __app_name__, __version__
 from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.ui.font_helper import FontHelper
 from easy_scsmodmanager.ui.main_window import MainWindow
@@ -33,9 +33,10 @@ def _apply_saved_language(store: SettingsStore) -> None:
 
 
 def run(argv: list[str]) -> int:
-    setup_logging()
+    log_file = setup_logging()
     log = logging.getLogger(__name__)
-    log.info("Starting %s", __app_name__)
+    log.info("Starting %s %s", __app_name__, __version__)
+    log.info("Log file: %s", log_file)
 
     app = QApplication(argv)
     app.setApplicationName(__app_name__)

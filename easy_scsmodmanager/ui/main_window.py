@@ -20,7 +20,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import QSize, Qt, QUrl
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -78,6 +79,7 @@ from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, FilterTool
 from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
 from easy_scsmodmanager.ui.widgets.profile_header import ProfileChoice, ProfileHeader
 from easy_scsmodmanager.utils.i18n import t
+from easy_scsmodmanager.utils.logging_setup import default_log_dir
 
 if TYPE_CHECKING:
     from PyQt6.QtGui import QAction
@@ -252,6 +254,11 @@ class MainWindow(QMainWindow):
         store = SettingsStore()
         install_dir = store.get_install_override(self._game) or find_game_install_dir(self._game)
         ExtractDialog(install_dir, self).exec()
+
+    def _on_open_log_folder(self) -> None:
+        log_dir = default_log_dir()
+        log_dir.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
 
     def available_games(self) -> set[Game]:
         """Games we can actually open - a manual override or an auto-detect."""

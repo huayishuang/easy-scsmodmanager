@@ -207,6 +207,8 @@ def _fallback_workshop_payload(workshop_id_dir: Path) -> Path | None:
 
 
 def _scan_one(path: Path, cache: ScanCache | None = None) -> ScannedMod:
+    # logged before any work so a hang leaves the culprit's path as the last line
+    log.info("scanning %s", path)
     if cache is not None:
         cached = cache.get(path)
         if cached is not None:
