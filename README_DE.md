@@ -207,12 +207,37 @@ Easy SCSModManager kommt mit **Englisch** und **Deutsch**. Du willst es in deine
 
 **Eine Übersetzung beizutragen braucht kein Programmieren.**
 
-1. Kopiere die Dateien aus `easy_scsmodmanager/resources/i18n/en/`
+1. Kopiere den Ordner `easy_scsmodmanager/resources/i18n/en/` nach `easy_scsmodmanager/resources/i18n/<dein-code>/` (z.B. `ru/`)
 2. Übersetze die Werte - ändere niemals die Schlüssel
 3. Lass Platzhalter wie `{count}` und `{name}` unangetastet
-4. Reiche einen Pull Request ein
+4. Prüfe `easy_scsmodmanager/resources/i18n/languages.json`: Fehlt dein Sprachcode dort, ergänze eine Zeile mit Code und dem Namen in der Sprache selbst
+5. Reiche einen Pull Request ein
 
 Ein fehlender Schlüssel erscheint als nackter Schlüssel in der Oberfläche, sodass Lücken beim Arbeiten leicht auffallen.
+
+<details>
+<summary>🧪 Übersetzung vor dem PR testen (optional, auch ohne Programmieren)</summary>
+
+Die App erkennt jeden Sprachordner automatisch - du musst sie nur einmal aus dem Quellcode starten:
+
+```bash
+# Quellcode holen: grüner "Code"-Knopf auf GitHub -> Download ZIP -> entpacken
+# (oder: git clone https://github.com/Switch-Bros/easy-scsmodmanager.git)
+
+# Im entpackten Ordner:
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e .
+
+# Deine Übersetzung nach easy_scsmodmanager/resources/i18n/<dein-code>/main.json legen, dann:
+python -m easy_scsmodmanager
+```
+
+Deine Sprache erscheint unter **Einstellungen -> Sprache**; auswählen und die App neu starten. Jeder Text, der noch als nackter Schlüssel wie `menu.file.refresh` erscheint, ist noch nicht übersetzt.
+
+Benötigt **Python 3.13+** (von [python.org](https://www.python.org/), unter Windows im Installer "Add python.exe to PATH" anhaken).
+
+</details>
 
 
 <h2 align="center">🤝 Mitmachen</h2>
