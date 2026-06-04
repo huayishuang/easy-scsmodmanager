@@ -207,12 +207,37 @@ Easy SCSModManager ships with **English** and **German**. Want it in your langua
 
 **Contributing a translation needs no coding.**
 
-1. Copy the files from `easy_scsmodmanager/resources/i18n/en/`
+1. Copy the folder `easy_scsmodmanager/resources/i18n/en/` to `easy_scsmodmanager/resources/i18n/<your-code>/` (e.g. `ru/`)
 2. Translate the values - never change the keys
 3. Keep placeholders like `{count}` and `{name}` untouched
-4. Submit a Pull Request
+4. Check `easy_scsmodmanager/resources/i18n/languages.json`: if your language code has no entry yet, add one line with its code and its name in the language itself
+5. Submit a Pull Request
 
 A missing key shows up as the raw key in the interface, so gaps are easy to spot while you work.
+
+<details>
+<summary>🧪 Test your translation before the PR (optional, no coding either)</summary>
+
+The app picks up any language folder automatically - you only need to run it from source once:
+
+```bash
+# Get the source: green "Code" button on GitHub -> Download ZIP -> unpack
+# (or: git clone https://github.com/Switch-Bros/easy-scsmodmanager.git)
+
+# In the unpacked folder:
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e .
+
+# Put your translation at easy_scsmodmanager/resources/i18n/<your-code>/main.json, then:
+python -m easy_scsmodmanager
+```
+
+Your language appears under **Settings -> Language**; pick it and restart the app. Any text that still shows as a raw key like `menu.file.refresh` is a key you have not translated yet.
+
+Requires **Python 3.13+** (from [python.org](https://www.python.org/), on Windows tick "Add python.exe to PATH" in the installer).
+
+</details>
 
 
 <h2 align="center">🤝 Contributing</h2>
