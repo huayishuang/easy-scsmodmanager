@@ -34,7 +34,7 @@
 
 <h3 align="center">💛 Projekt unterstützen</h3>
 
-Wenn dir dieser Manager das Zurechtklicken einer 300-Mod-Liste Zeile für Zeile erspart, kannst du die Entwicklung unterstützen. Jeder Beitrag - egal wie klein - hält das Projekt am Leben.
+Wenn dir dieser Manager das Zurechtklicken einer 300-Mod-Liste Zeile für Zeile erspart, BITTE denk über eine Spende nach um die Entwicklung zu unterstützen. Jeder Beitrag - egal wie klein - hält das Projekt am Leben.
 
 <p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
@@ -47,6 +47,8 @@ Wenn dir dieser Manager das Zurechtklicken einer 300-Mod-Liste Zeile für Zeile 
 </p>
 
 <p align="center"><i>Danke an alle, die schon beigetragen haben - ihr seid großartig! 🙏</i></p>
+
+<p align="center">Spenden ist gerade nicht drin? <b>Ein ⭐ für dieses Repo hilft genauso</b> - es macht das Projekt für andere Trucker sichtbar und kostet nichts.</p>
 
 <p align="center">
   <picture>
