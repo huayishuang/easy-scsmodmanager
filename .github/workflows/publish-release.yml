@@ -70,6 +70,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: EasySCSModManager-deb
+      - uses: actions/download-artifact@v4
+        with:
+          name: EasySCSModManager-rpm
 
       - name: Generate checksums
         run: |
@@ -78,6 +81,7 @@ jobs:
             EasySCSModManager.exe \
             EasySCSModManager-*-linux-x86_64.tar.gz \
             easy-scsmodmanager_*.deb \
+            easy-scsmodmanager-*.rpm \
             > SHA256SUMS.txt
 
       - uses: softprops/action-gh-release@v2
@@ -88,4 +92,5 @@ jobs:
             EasySCSModManager.exe
             EasySCSModManager-*-linux-x86_64.tar.gz
             easy-scsmodmanager_*.deb
+            easy-scsmodmanager-*.rpm
             SHA256SUMS.txt

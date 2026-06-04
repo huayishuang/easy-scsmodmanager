@@ -147,7 +147,7 @@ Vollständige Oberfläche auf **Englisch 🇬🇧** und **Deutsch 🇩🇪** mit
 
 - **Linux und Windows** von Anfang an - native und Proton-Installationen werden beide erkannt
 - **Steam-Deck-tauglich** - läuft im Desktop-Modus
-- **Fünf Distributions-Formate** - AppImage, Windows-EXE, .deb, tar.gz und AUR
+- **Sechs Distributions-Formate** - AppImage, Windows-EXE, .deb, .rpm, tar.gz und AUR
 
 
 <h2 align="center">📦 Herunterladen & Installieren</h2>
@@ -158,6 +158,7 @@ Vollständige Oberfläche auf **Englisch 🇬🇧** und **Deutsch 🇩🇪** mit
 | 🪟 **Windows-EXE** | [Neueste laden](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Eigenständig, kein Python nötig |
 | 🏗️ **AUR** | `yay -S easy-scsmodmanager` | Arch / Manjaro / CachyOS / EndeavourOS |
 | 🍥 **.deb** | [Neueste laden](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Debian / Ubuntu / Linux Mint (nutzt System-PyQt6) |
+| 🎩 **.rpm** | [Neueste laden](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Fedora / openSUSE / RHEL (nutzt System-PyQt6) |
 | 📁 **tar.gz** | [Neueste laden](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Portabel mit Installationsskript |
 
 <details>
@@ -193,7 +194,7 @@ Benötigt **Python 3.13+** und **PyQt6**.
 | Map-Combo Export/Import mit Fehlende-Map- und Versions-Hinweis | ✅ Fertig |
 | Kompatibilitäts-Prüfung (4 Zustände) und def-Überschneidungs-Konflikte | ✅ Fertig |
 | Favoriten, ETS2/ATS-Spiel-Umschalter | ✅ Fertig |
-| Multi-Format-Pakete (AppImage, EXE, .deb, tar.gz, AUR) | ✅ Fertig |
+| Multi-Format-Pakete (AppImage, EXE, .deb, .rpm, tar.gz, AUR) | ✅ Fertig |
 | **v1.1.1 - Erste öffentliche Version** | ✅ **Veröffentlicht** |
 | Mod-Presets / teilbare Ladereihenfolge-Profile | 📋 Geplant |
 | Workshop-Update-Benachrichtigungen und Ein-Klick-Links zur Workshop-Seite | 📋 Geplant |

@@ -40,3 +40,20 @@ jobs:
         with:
           name: EasySCSModManager-deb
           path: dist/easy-scsmodmanager_*.deb
+
+  build-rpm:
+    runs-on: ubuntu-22.04
+    container:
+      image: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: |
+          dnf install -y python3-devel python3-build python3-installer \
+            python3-setuptools python3-wheel python3-pip rpm-build tar git
+      - name: Build .rpm
+        run: bash packaging/rpm/build-rpm.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EasySCSModManager-rpm
+          path: ~/rpmbuild/RPMS/noarch/easy-scsmodmanager-*.rpm

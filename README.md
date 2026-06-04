@@ -147,7 +147,7 @@ Full **English 🇬🇧** and **German 🇩🇪** interface with complete i18n -
 
 - **Linux and Windows** from day one - native and Proton installs are both detected
 - **Steam Deck friendly** - works in Desktop Mode
-- **Five distribution formats** - AppImage, Windows EXE, .deb, tar.gz and AUR
+- **Six distribution formats** - AppImage, Windows EXE, .deb, .rpm, tar.gz and AUR
 
 
 <h2 align="center">📦 Download & Install</h2>
@@ -158,6 +158,7 @@ Full **English 🇬🇧** and **German 🇩🇪** interface with complete i18n -
 | 🪟 **Windows EXE** | [Download latest](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Standalone, no Python install needed |
 | 🏗️ **AUR** | `yay -S easy-scsmodmanager` | Arch / Manjaro / CachyOS / EndeavourOS |
 | 🍥 **.deb** | [Download latest](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Debian / Ubuntu / Linux Mint (uses system PyQt6) |
+| 🎩 **.rpm** | [Download latest](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Fedora / openSUSE / RHEL (uses system PyQt6) |
 | 📁 **tar.gz** | [Download latest](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Portable with install script |
 
 <details>
@@ -193,7 +194,7 @@ Requires **Python 3.13+** and **PyQt6**.
 | Map Combo export/import with missing-map and version hints | ✅ Complete |
 | Compatibility check (4 states) and def-overlap conflict hints | ✅ Complete |
 | Favourites, ETS2/ATS game switcher | ✅ Complete |
-| Multi-format packaging (AppImage, EXE, .deb, tar.gz, AUR) | ✅ Complete |
+| Multi-format packaging (AppImage, EXE, .deb, .rpm, tar.gz, AUR) | ✅ Complete |
 | **v1.1.1 - First public release** | ✅ **Released** |
 | Mod presets / shareable load-order profiles | 📋 Planned |
 | Workshop update notifications and one-click Workshop links | 📋 Planned |
