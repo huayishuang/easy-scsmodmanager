@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0] - 2026-06-06
+
+- **Self-contained dark theme.** The app now ships its own dark palette and
+  stylesheet instead of relying on the OS theme. This fixes a hard-to-read
+  interface (barely visible menu bar, invisible checkbox labels, a white
+  map-base list) reported on Windows 11 with "system dark / apps light".
+  The look no longer depends on your OS light/dark setting. Scrollbars are
+  now styled consistently everywhere too.
+
 ## [1.2.0] - 2026-06-05
 
 - **Auto-update.** The app can now check GitHub for a newer release. The
