@@ -61,21 +61,7 @@ class SettingsDialog(QDialog):
 
         self.setWindowTitle(t("dialog.settings.title"))
         self.setMinimumWidth(580)
-        self.setStyleSheet(f"""
-            QDialog {{ background-color: {Theme.BACKGROUND}; }}
-            QLabel {{ color: {Theme.TEXT}; }}
-            QLineEdit, QComboBox {{
-                background-color: {Theme.SURFACE}; color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE_HOVER}; border-radius: 3px;
-                padding: 4px 6px;
-            }}
-            QPushButton {{
-                background-color: {Theme.SURFACE}; color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE_HOVER}; border-radius: 3px;
-                padding: 4px 10px;
-            }}
-            QPushButton:hover {{ background-color: {Theme.SURFACE_HOVER}; }}
-        """)
+        # styling comes from the global dark palette + GLOBAL_QSS now
         self._build()
 
     def _load(self, game: Game, kind: str) -> Path | None:

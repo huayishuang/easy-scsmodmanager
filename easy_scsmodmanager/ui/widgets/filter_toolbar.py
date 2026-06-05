@@ -51,21 +51,9 @@ class FilterToolbar(QWidget):
         self._debounce.setInterval(SEARCH_DEBOUNCE_MS)
         self._debounce.timeout.connect(self._emit_filter)
 
-        self.setStyleSheet(f"""
-            QLineEdit, QComboBox {{
-                background-color: {Theme.SURFACE};
-                color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE_HOVER};
-                border-radius: 3px;
-                padding: 4px 6px;
-            }}
-            QCheckBox {{
-                color: {Theme.TEXT};
-            }}
-            QLabel {{
-                color: {Theme.TEXT_DIM};
-            }}
-            """)
+        # only the two anonymous labels ("Sort:", "Category:") still need a
+        # local rule; inputs/combos/checkboxes fall to the global dark QSS
+        self.setStyleSheet(f"QLabel {{ color: {Theme.TEXT_DIM}; }}")
 
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)

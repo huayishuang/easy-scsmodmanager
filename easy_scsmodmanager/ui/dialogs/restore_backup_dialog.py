@@ -42,7 +42,7 @@ class RestoreBackupDialog(QDialog):
 
         self.setWindowTitle(t("dialog.restore.title"))
         self.setMinimumWidth(480)
-        self.setStyleSheet(f"background-color: {Theme.BACKGROUND}; color: {Theme.TEXT};")
+        # styling comes from the global dark palette + GLOBAL_QSS now
 
         root = QVBoxLayout(self)
         root.setSpacing(8)
@@ -55,15 +55,6 @@ class RestoreBackupDialog(QDialog):
         root.addWidget(header)
 
         self._list = QListWidget()
-        self._list.setStyleSheet(f"""
-            QListWidget {{
-                background-color: {Theme.SURFACE};
-                color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE_HOVER};
-                border-radius: 4px;
-            }}
-            QListWidget::item:selected {{ background-color: {Theme.PRIMARY}; }}
-            """)
         self._list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         for entry in backups:
             item = QListWidgetItem(f"{entry.label}   ({disk_usage_human(entry.size_bytes)})")

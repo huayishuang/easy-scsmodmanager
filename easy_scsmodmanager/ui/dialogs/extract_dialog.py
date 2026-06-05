@@ -40,21 +40,7 @@ class ExtractDialog(QDialog):
 
         self.setWindowTitle(t("dialog.extract.title"))
         self.setMinimumSize(640, 520)
-        self.setStyleSheet(f"""
-            QDialog {{ background-color: {Theme.BACKGROUND}; }}
-            QLabel {{ color: {Theme.TEXT}; }}
-            QListWidget, QLineEdit {{
-                background-color: {Theme.SURFACE}; color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE_HOVER}; border-radius: 3px;
-            }}
-            QCheckBox {{ color: {Theme.TEXT}; }}
-            QPushButton {{
-                background-color: {Theme.SURFACE}; color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE_HOVER}; border-radius: 3px;
-                padding: 4px 10px;
-            }}
-            QPushButton:hover {{ background-color: {Theme.SURFACE_HOVER}; }}
-        """)
+        # styling comes from the global dark palette + GLOBAL_QSS now
         self._build(install_dir)
 
     def _build(self, install_dir: Path | None) -> None:
