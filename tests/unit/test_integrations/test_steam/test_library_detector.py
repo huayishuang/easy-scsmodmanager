@@ -134,3 +134,76 @@ def test_discover_steam_libraries_combines_all_installs_and_dedupes(
     libs = discover_steam_libraries()
 
     assert sorted(libs) == sorted([Path("/lib/shared"), Path("/lib/only-a"), Path("/lib/only-b")])
+
+
+def test_registry_steam_path_prefers_hkcu_steampath(monkeypatch: pytest.MonkeyPatch) -> None:
+    from easy_scsmodmanager.integrations.steam import library_detector as ld
+
+    def fake_read(hive: str, subkey: str, name: str, *, expand: bool = False) -> str | None:
+        if hive == "HKCU" and name == "SteamPath":
+            return r"D:\Steam"
+        return None
+
+    monkeypatch.setattr(ld, "read_string", fake_read)
+
+    assert ld._registry_steam_path() == Path(r"D:\Steam")
+
+
+def test_registry_steam_path_falls_back_to_hklm_installpath(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from easy_scsmodmanager.integrations.steam import library_detector as ld
+
+    def fake_read(hive: str, subkey: str, name: str, *, expand: bool = False) -> str | None:
+        if hive == "HKLM" and name == "InstallPath":
+            return r"C:\Program Files (x86)\Steam"
+        return None
+
+    monkeypatch.setattr(ld, "read_string", fake_read)
+
+    assert ld._registry_steam_path() == Path(r"C:\Program Files (x86)\Steam")
+
+
+def test_registry_steam_path_keeps_forward_slashes(monkeypatch: pytest.MonkeyPatch) -> None:
+    from easy_scsmodmanager.integrations.steam import library_detector as ld
+
+    monkeypatch.setattr(ld, "read_string", lambda *a, **k: "D:/Steam")
+
+    assert ld._registry_steam_path() == Path("D:/Steam")
+
+
+def test_registry_steam_path_none_when_absent(monkeypatch: pytest.MonkeyPatch) -> None:
+    from easy_scsmodmanager.integrations.steam import library_detector as ld
+
+    monkeypatch.setattr(ld, "read_string", lambda *a, **k: None)
+
+    assert ld._registry_steam_path() is None
+
+
+def test_windows_candidates_put_registry_first(monkeypatch: pytest.MonkeyPatch) -> None:
+    from easy_scsmodmanager.integrations.steam import library_detector as ld
+
+    monkeypatch.setattr(ld, "_registry_steam_path", lambda: Path(r"R:\SteamFromRegistry"))
+    monkeypatch.setenv("ProgramFiles(x86)", r"C:\Program Files (x86)")
+    monkeypatch.delenv("ProgramFiles", raising=False)
+    monkeypatch.delenv("ProgramW6432", raising=False)
+    monkeypatch.delenv("USERPROFILE", raising=False)
+
+    cands = ld._windows_candidates()
+
+    assert cands[0] == Path(r"R:\SteamFromRegistry")
+    assert Path(r"C:\Program Files (x86)") / "Steam" in cands
+
+
+def test_windows_candidates_skip_registry_when_absent(monkeypatch: pytest.MonkeyPatch) -> None:
+    from easy_scsmodmanager.integrations.steam import library_detector as ld
+
+    monkeypatch.setattr(ld, "_registry_steam_path", lambda: None)
+    monkeypatch.setenv("ProgramFiles(x86)", r"C:\Program Files (x86)")
+    monkeypatch.delenv("ProgramFiles", raising=False)
+    monkeypatch.delenv("ProgramW6432", raising=False)
+    monkeypatch.delenv("USERPROFILE", raising=False)
+
+    cands = ld._windows_candidates()
+
+    assert cands == [Path(r"C:\Program Files (x86)") / "Steam"]

@@ -22,6 +22,8 @@ from pathlib import Path
 
 import vdf
 
+from easy_scsmodmanager.utils.win_registry import read_string
+
 LIBRARYFOLDERS_RELATIVE = Path("steamapps") / "libraryfolders.vdf"
 
 
@@ -92,8 +94,26 @@ def _linux_candidates() -> list[Path]:
     ]
 
 
+def _registry_steam_path() -> Path | None:
+    """Steam's own install dir as Steam recorded it in the registry.
+
+    The most reliable source on Windows - the user may have installed Steam
+    anywhere. HKCU\\Software\\Valve\\Steam holds "SteamPath"; the per-machine
+    HKLM\\...\\WOW6432Node copy keeps "InstallPath" as a fallback. Either can
+    come back with forward slashes ("D:/Steam"), which Path handles fine.
+    """
+    raw = read_string("HKCU", r"Software\Valve\Steam", "SteamPath") or read_string(
+        "HKLM", r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"
+    )
+    return Path(raw) if raw else None
+
+
 def _windows_candidates() -> list[Path]:
     candidates: list[Path] = []
+    # registry first - it knows where Steam actually went
+    reg = _registry_steam_path()
+    if reg:
+        candidates.append(reg)
     for var in ("ProgramFiles(x86)", "ProgramFiles", "ProgramW6432"):
         root = os.environ.get(var)
         if root:
