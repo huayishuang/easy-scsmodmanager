@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import zipfile
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -48,6 +49,9 @@ if TYPE_CHECKING:
     from easy_scsmodmanager.core.db.scan_cache import ScanCache
 
 log = logging.getLogger(__name__)
+
+# called once per mod as it is scanned - same hook that logs "scanning <path>"
+OnScan = Callable[[Path], None]
 
 MANIFEST_ENTRY = "manifest.sii"
 ARCHIVE_SUFFIXES = (".scs", ".zip")
@@ -87,28 +91,34 @@ def scan_game_install(
     install: GameInstall,
     cache: ScanCache | None = None,
     game_version: str | None = None,
+    on_scan: OnScan | None = None,
 ) -> list[ScannedMod]:
     """Scan the install's mod/ directory and workshop tree."""
-    mods = scan_mod_directory(install.mod_dir, cache=cache)
+    mods = scan_mod_directory(install.mod_dir, cache=cache, on_scan=on_scan)
     if install.workshop_dir is not None:
         mods.extend(
-            scan_workshop_directory(install.workshop_dir, cache=cache, game_version=game_version)
+            scan_workshop_directory(
+                install.workshop_dir, cache=cache, game_version=game_version, on_scan=on_scan
+            )
         )
     return mods
 
 
-def scan_mod_directory(directory: Path, cache: ScanCache | None = None) -> list[ScannedMod]:
+def scan_mod_directory(
+    directory: Path, cache: ScanCache | None = None, on_scan: OnScan | None = None
+) -> list[ScannedMod]:
     """Scan a flat directory for ``.scs`` / ``.zip`` files and unpacked
     mod directories (those that contain ``manifest.sii`` at the root)."""
     if not directory.is_dir():
         return []
-    return [_scan_one(p, cache=cache) for p in _mod_candidates(directory)]
+    return [_scan_one(p, cache=cache, on_scan=on_scan) for p in _mod_candidates(directory)]
 
 
 def scan_workshop_directory(
     directory: Path,
     cache: ScanCache | None = None,
     game_version: str | None = None,
+    on_scan: OnScan | None = None,
 ) -> list[ScannedMod]:
     """Scan a Steam workshop content tree.
 
@@ -123,7 +133,7 @@ def scan_workshop_directory(
     for workshop_id_dir in sorted(p for p in directory.iterdir() if p.is_dir()):
         payload = _resolve_workshop_payload(workshop_id_dir, game_version)
         if payload is not None:
-            results.append(_scan_one(payload, cache=cache))
+            results.append(_scan_one(payload, cache=cache, on_scan=on_scan))
     return results
 
 
@@ -206,9 +216,13 @@ def _fallback_workshop_payload(workshop_id_dir: Path) -> Path | None:
     return None
 
 
-def _scan_one(path: Path, cache: ScanCache | None = None) -> ScannedMod:
+def _scan_one(
+    path: Path, cache: ScanCache | None = None, on_scan: OnScan | None = None
+) -> ScannedMod:
     # logged before any work so a hang leaves the culprit's path as the last line
     log.info("scanning %s", path)
+    if on_scan is not None:
+        on_scan(path)  # same point as the log line - the single progress hook
     if cache is not None:
         cached = cache.get(path)
         if cached is not None:

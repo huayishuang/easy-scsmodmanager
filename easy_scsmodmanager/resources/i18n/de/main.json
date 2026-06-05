@@ -96,6 +96,7 @@
   "control_strip.remove_selected_tooltip": "Ausgewählte Mods deaktivieren",
   "control_strip.remove_all_tooltip": "Alle Mods deaktivieren",
   "status_bar.scanning": "Scanne Mods in {path}...",
+  "status_bar.scan_progress": "Scanne Mod {done}: {name}",
   "status_bar.scan_done": "{total} Mods geladen ({active} aktiv, {errors} Fehler) in {elapsed:.1f}s",
   "status_bar.no_install": "Kein Game-Install gefunden. Prüfe Einstellungen.",
   "status_bar.selection": "{count} ausgewählt",

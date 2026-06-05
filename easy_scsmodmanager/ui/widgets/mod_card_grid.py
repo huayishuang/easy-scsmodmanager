@@ -76,31 +76,37 @@ class ModCardGrid(QScrollArea):
         """
         self._clear()
         active_names = active_names or set()
-        for i, mod in enumerate(mods):
-            icon = icon_for(mod) if icon_for is not None else None
-            card = ModCard(
-                mod,
-                is_active=active_name_for(mod) in active_names,
-                icon_bytes=icon,
-                display_name=name_for(mod) if name_for is not None else None,
-                categories_for=categories_for,
-                compat_for=compat_for,
-                is_favorite=is_favorite_for(mod) if is_favorite_for is not None else False,
-            )
-            idx = len(self._cards)
-            card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
-            card.activated.connect(lambda i=idx: self._on_card_activated(i))
-            card.info_requested.connect(lambda m=mod: self.info_requested.emit(m))
-            card.favorite_toggled.connect(lambda fav, m=mod: self.favorite_toggled.emit(m, fav))
-            card.show_in_active_requested.connect(
-                lambda m=mod: self.show_in_active_requested.emit(m)
-            )
-            card.drag_started.connect(lambda i=idx: self._start_drag(i))
-            self._cards.append(card)
-            self._grid.addWidget(card, i // self._columns, i % self._columns)
-        # Push the cards top-left, do not let the grid stretch them.
-        self._grid.setRowStretch(self._grid.rowCount(), 1)
-        self._grid.setColumnStretch(self._columns, 1)
+        # batch the insert: one repaint at the end, not one per card. With a few
+        # thousand mods the per-widget layout updates are what makes the grid crawl.
+        self._content.setUpdatesEnabled(False)
+        try:
+            for i, mod in enumerate(mods):
+                icon = icon_for(mod) if icon_for is not None else None
+                card = ModCard(
+                    mod,
+                    is_active=active_name_for(mod) in active_names,
+                    icon_bytes=icon,
+                    display_name=name_for(mod) if name_for is not None else None,
+                    categories_for=categories_for,
+                    compat_for=compat_for,
+                    is_favorite=is_favorite_for(mod) if is_favorite_for is not None else False,
+                )
+                idx = len(self._cards)
+                card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
+                card.activated.connect(lambda i=idx: self._on_card_activated(i))
+                card.info_requested.connect(lambda m=mod: self.info_requested.emit(m))
+                card.favorite_toggled.connect(lambda fav, m=mod: self.favorite_toggled.emit(m, fav))
+                card.show_in_active_requested.connect(
+                    lambda m=mod: self.show_in_active_requested.emit(m)
+                )
+                card.drag_started.connect(lambda i=idx: self._start_drag(i))
+                self._cards.append(card)
+                self._grid.addWidget(card, i // self._columns, i % self._columns)
+            # Push the cards top-left, do not let the grid stretch them.
+            self._grid.setRowStretch(self._grid.rowCount(), 1)
+            self._grid.setColumnStretch(self._columns, 1)
+        finally:
+            self._content.setUpdatesEnabled(True)
 
     def cards(self) -> list[ModCard]:
         return list(self._cards)

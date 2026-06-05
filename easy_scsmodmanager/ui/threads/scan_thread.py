@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
@@ -19,6 +20,18 @@ from easy_scsmodmanager.core.game_paths import GameInstall
 from easy_scsmodmanager.services.mod_scanner import ScannedMod, scan_game_install
 
 log = logging.getLogger(__name__)
+
+
+def _log_peak_rss(mod_count: int) -> None:
+    # baseline for the planned 1.3.0 icon/grid rework - measure, do not guess.
+    # resource is Unix-only, so skip silently on Windows.
+    try:
+        import resource
+
+        kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        log.info("peak RSS after scanning %d mods: %d MB", mod_count, kb // 1024)
+    except Exception:  # pragma: no cover - platform without resource
+        pass
 
 
 @dataclass(frozen=True)
@@ -33,22 +46,31 @@ class ScanWorker(QObject):
 
     finished = pyqtSignal(object)  # ScanResult
     failed = pyqtSignal(str)
+    progress = pyqtSignal(int, str)  # (mods scanned so far, current mod name)
 
     def __init__(self, install: GameInstall, cache: ScanCache | None) -> None:
         super().__init__()
         self._install = install
         self._cache = cache
+        self._done = 0
 
     def run(self) -> None:
         start = time.monotonic()
+        self._done = 0
         try:
-            mods = scan_game_install(self._install, cache=self._cache)
+            mods = scan_game_install(self._install, cache=self._cache, on_scan=self._tick)
         except Exception as exc:  # pragma: no cover - defensive only
             log.exception("scan failed")
             self.failed.emit(str(exc))
             return
         elapsed = time.monotonic() - start
+        _log_peak_rss(len(mods))
         self.finished.emit(ScanResult(install=self._install, mods=mods, elapsed_seconds=elapsed))
+
+    def _tick(self, path: Path) -> None:
+        # fed straight from the scanner's per-mod hook - no separate count path
+        self._done += 1
+        self.progress.emit(self._done, path.name)
 
 
 class ScanThread(QThread):
@@ -63,12 +85,14 @@ class ScanThread(QThread):
 
     finished_with_result = pyqtSignal(object)  # ScanResult
     failed = pyqtSignal(str)
+    progress = pyqtSignal(int, str)  # (mods scanned so far, current mod name)
 
     def __init__(self, install: GameInstall, cache: ScanCache | None) -> None:
         super().__init__()
         self._worker = ScanWorker(install, cache)
         self._worker.finished.connect(self.finished_with_result.emit)
         self._worker.failed.connect(self.failed.emit)
+        self._worker.progress.connect(self.progress.emit)
 
     def run(self) -> None:  # noqa: D401
         self._worker.run()

@@ -248,3 +248,29 @@ def test_scan_game_install_skips_workshop_when_install_has_no_workshop_dir(
     assert len(mods) == 1
     assert mods[0].manifest is not None
     assert mods[0].manifest.display_name == "Only Local"
+
+
+def test_scan_mod_directory_calls_on_scan_per_mod(tmp_path: Path) -> None:
+    _zip_mod(tmp_path / "mod_a.scs", _full_manifest("A", "x"))
+    _zip_mod(tmp_path / "mod_b.scs", _full_manifest("B", "y"))
+
+    seen: list[str] = []
+    scan_mod_directory(tmp_path, on_scan=lambda p: seen.append(p.name))
+
+    assert sorted(seen) == ["mod_a.scs", "mod_b.scs"]
+
+
+def test_scan_game_install_threads_on_scan(tmp_path: Path) -> None:
+    mod_dir = tmp_path / "mod"
+    _zip_mod(mod_dir / "one.scs", _full_manifest("One", "x"))
+    install = GameInstall(
+        game=Game.ETS2,
+        kind=InstallKind.LINUX_NATIVE,
+        documents_dir=tmp_path,
+        workshop_dir=None,
+    )
+
+    ticks: list[str] = []
+    scan_game_install(install, on_scan=lambda p: ticks.append(p.name))
+
+    assert ticks == ["one.scs"]

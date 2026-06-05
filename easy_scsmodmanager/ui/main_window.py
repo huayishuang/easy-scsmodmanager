@@ -377,7 +377,11 @@ class MainWindow(QMainWindow):
         self._scan_thread = ScanThread(self._install, self._cache)
         self._scan_thread.finished_with_result.connect(self._on_scan_finished)
         self._scan_thread.failed.connect(self._on_scan_failed)
+        self._scan_thread.progress.connect(self._on_scan_progress)
         self._scan_thread.start()
+
+    def _on_scan_progress(self, done: int, name: str) -> None:
+        self.statusBar().showMessage(t("status_bar.scan_progress", done=done, name=name))
 
     def _on_scan_finished(self, result: ScanResult) -> None:
         self._all_mods = result.mods
