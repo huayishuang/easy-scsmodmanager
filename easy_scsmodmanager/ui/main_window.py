@@ -42,6 +42,7 @@ from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.favorites_store import FavoritesStore, default_favorites_path
 from easy_scsmodmanager.core.game_paths import (
+    GAME_SHORT_NAME,
     Game,
     GameInstall,
     InstallKind,
@@ -172,12 +173,14 @@ class MainWindow(QMainWindow):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(8)
         self._profile_header = ProfileHeader()
+        self._profile_header.set_game_name(GAME_SHORT_NAME[self._game])
         self._backup = ProfileBackupController(
             parent=self,
             current_path=lambda: self._profile_sii_path,
             restore_name=self._restore_display_name,
             show_status=self.statusBar().showMessage,
             on_restored=self._reload_after_restore,
+            game_name=lambda: GAME_SHORT_NAME[self._game],
         )
         self._profile_header.profile_selected.connect(self._on_profile_chosen)
         self._profile_header.backup_requested.connect(self._backup.backup)
@@ -295,6 +298,7 @@ class MainWindow(QMainWindow):
                 return
         self._game = game
         self._settings.set_active_game(game)
+        self._profile_header.set_game_name(GAME_SHORT_NAME[game])
         self._save_btn.setEnabled(False)
         self._sync_game_menu()
         self._detect_install_and_scan()
@@ -510,7 +514,7 @@ class MainWindow(QMainWindow):
         choice = QMessageBox.question(
             self,
             t("dialog.save.title"),
-            t("dialog.save.body"),
+            t("dialog.save.body", game=GAME_SHORT_NAME[self._game]),
             QMessageBox.StandardButton.Yes
             | QMessageBox.StandardButton.No
             | QMessageBox.StandardButton.Cancel,

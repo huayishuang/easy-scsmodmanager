@@ -34,6 +34,7 @@ class RestoreBackupDialog(QDialog):
         profile_display_name: str,
         backups: list[BackupEntry],
         parent: QWidget | None = None,
+        game_name: str = "",
     ) -> None:
         super().__init__(parent)
         self._backups = backups
@@ -72,7 +73,7 @@ class RestoreBackupDialog(QDialog):
             self._list.setCurrentRow(0)
         root.addWidget(self._list, 1)
 
-        warning = QLabel(t("dialog.restore.warning"))
+        warning = QLabel(t("dialog.restore.warning", game=game_name))
         warning.setStyleSheet(f"color: {Theme.DANGER}; font-size: 11px;")
         warning.setWordWrap(True)
         root.addWidget(warning)

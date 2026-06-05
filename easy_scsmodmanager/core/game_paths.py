@@ -54,6 +54,12 @@ GAME_DIRECTORY_NAME: dict[Game, str] = {
     Game.ATS: "American Truck Simulator",
 }
 
+# short label for warnings/tooltips ("ETS2 must NOT be running")
+GAME_SHORT_NAME: dict[Game, str] = {
+    Game.ETS2: "ETS2",
+    Game.ATS: "ATS",
+}
+
 
 @dataclass(frozen=True)
 class GameInstall:

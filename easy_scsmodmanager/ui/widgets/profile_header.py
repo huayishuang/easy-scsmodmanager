@@ -49,6 +49,7 @@ class ProfileHeader(QWidget):
         super().__init__(parent)
         self._profile: Profile | None = None
         self._choices: list[ProfileChoice] = []
+        self._game_name = ""
 
         self.setStyleSheet(f"background-color: {Theme.SURFACE}; border-radius: 4px;")
 
@@ -103,7 +104,7 @@ class ProfileHeader(QWidget):
         backup_row.setContentsMargins(0, 0, 0, 0)
         backup_row.setSpacing(4)
         self._backup_btn = QPushButton(t("profile_header.backup"))
-        self._backup_btn.setToolTip(t("profile_header.backup_tooltip"))
+        self._backup_btn.setToolTip(t("profile_header.backup_tooltip", game=self._game_name))
         self._backup_btn.setStyleSheet(_secondary_button_style())
         self._backup_btn.setEnabled(False)
         self._backup_btn.clicked.connect(self.backup_requested.emit)
@@ -121,6 +122,11 @@ class ProfileHeader(QWidget):
     # ------------------------------------------------------------------ #
     # public API
     # ------------------------------------------------------------------ #
+
+    def set_game_name(self, game_name: str) -> None:
+        # keep the backup tooltip naming the active game, not a hardcoded one
+        self._game_name = game_name
+        self._backup_btn.setToolTip(t("profile_header.backup_tooltip", game=game_name))
 
     def set_profile(
         self,

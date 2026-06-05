@@ -34,12 +34,14 @@ class ProfileBackupController:
         restore_name: Callable[[], str],
         show_status: Callable[[str, int], None],
         on_restored: Callable[[], None],
+        game_name: Callable[[], str] = lambda: "",
     ) -> None:
         self._parent = parent
         self._current_path = current_path
         self._restore_name = restore_name
         self._show_status = show_status
         self._on_restored = on_restored
+        self._game_name = game_name
 
     def backup(self) -> None:
         path = self._current_path()
@@ -61,7 +63,9 @@ class ProfileBackupController:
         if not backups:
             self._show_status(t("status_bar.no_backups"), 5000)
             return
-        dialog = RestoreBackupDialog(self._restore_name(), backups, parent=self._parent)
+        dialog = RestoreBackupDialog(
+            self._restore_name(), backups, parent=self._parent, game_name=self._game_name()
+        )
         if dialog.exec() != dialog.DialogCode.Accepted or dialog.selected is None:
             return
         try:
