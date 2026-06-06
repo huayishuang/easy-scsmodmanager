@@ -12,7 +12,7 @@
 [![Plattform](https://img.shields.io/badge/Plattform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Spiele](https://img.shields.io/badge/Spiele-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-558%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-584%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![Docs](https://img.shields.io/badge/Docs-DeepWiki-E67E22?style=plastic&labelColor=000000)](https://deepwiki.com/Switch-Bros/easy-scsmodmanager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
@@ -70,6 +70,7 @@ Easy SCSModManager liest deinen lokalen `mod/`-Ordner und deine Steam-Workshop-A
 - **Workshop-Vorschau** - hat ein Mod kein lesbares lokales Icon, springt das Steam-Workshop-Vorschaubild ein
 - **Suche, Sortierung und Filter** - Volltextsuche über Name, Ersteller und Kategorie, Sortierung nach Name oder Installationsdatum, Filter nach Kategorie, nur Workshop oder nur Favoriten
 - **Mehrfachauswahl** mit Strg / Shift, um ganze Stapel auf einmal zu aktivieren oder zu deaktivieren
+- **Mods in den Papierkorb löschen** - Rechtsklick (oder Entf) entfernt lokale Mods, mit Warnung falls ein gespeichertes Profil sie noch nutzt; Workshop-Mods bleiben bei Steam
 
 <p align="center">
   <picture>

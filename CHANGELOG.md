@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.2] - 2026-06-06
+
+- **Activating a mod now sorts it into its own group.** Double-clicking a mod
+  in the grid dropped it at the very top of the active list, so a mod from an
+  earlier group could end up rendered under a later group's header. It now
+  lands at the bottom of its own group's block, and the newly activated row is
+  selected so you can see where it went. Thanks to LLBBC for the reproduction.
+
 ## [1.3.1] - 2026-06-06
 
 - **Delete local mods from the app.** Right-click a mod (or select several) and
