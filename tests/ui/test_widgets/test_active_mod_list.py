@@ -36,21 +36,90 @@ def test_remove_mod_drops_it(qtbot: QtBot) -> None:
     assert [m.name for m in w.ordered_active_mods()] == ["a", "c"]
 
 
-def test_move_to_top_makes_mod_highest_priority(qtbot: QtBot) -> None:
-    w = _list(qtbot, ["a", "b", "c"])  # c is top priority
-
-    w.move_to_top(ActiveMod("a", "A"))
-
-    assert w.display_order()[0].name == "a"
-    assert w.ordered_active_mods()[-1].name == "a"
+_TOKENS = {"a_trailer": ("trailer",), "b_truck": ("truck",)}
 
 
-def test_move_to_top_existing_mod_is_not_duplicated(qtbot: QtBot) -> None:
+def _grouped(qtbot: QtBot, names: list[str]) -> ActiveModList:
+    widget = ActiveModList()
+    qtbot.addWidget(widget)
+    widget.set_active_mods(
+        [ActiveMod(n, n.upper()) for n in names],
+        category_for=lambda m: _TOKENS.get(m.name, ("other",)),
+    )
+    return widget
+
+
+def test_insert_into_group_block_appends_to_end_of_block(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b", "c"])  # all "other"
+
+    w.insert_into_group_block(ActiveMod("x", "X"))
+
+    # lands at the bottom of the (single) block, not forced to the top
+    assert [m.name for m in w.display_order()] == ["c", "b", "a", "x"]
+
+
+def test_insert_into_group_block_no_duplicate_for_active(qtbot: QtBot) -> None:
+    # migrated no-duplicate test - also the L2 guard
     w = _list(qtbot, ["a", "b", "c"])
 
-    w.move_to_top(ActiveMod("b", "B"))
+    w.insert_into_group_block(ActiveMod("b", "B"))
 
-    assert [m.name for m in w.display_order()] == ["b", "c", "a"]
+    assert [m.name for m in w.display_order()] == ["c", "b", "a"]
+
+
+def test_l2_guard_already_active_emits_nothing_and_selects(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b", "c"])
+    calls: list[int] = []
+    w.order_changed.connect(lambda: calls.append(1))
+
+    w.insert_into_group_block(ActiveMod("b", "B"))
+
+    assert calls == []  # no reorder, Save stays clean
+    assert w._list.currentItem().data(Qt.ItemDataRole.UserRole).name == "b"
+
+
+def test_successful_insert_emits_order_changed_once_and_selects(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b"])
+    calls: list[int] = []
+    w.order_changed.connect(lambda: calls.append(1))
+
+    w.insert_into_group_block(ActiveMod("x", "X"))
+
+    assert calls == [1]
+    assert w._list.currentItem().data(Qt.ItemDataRole.UserRole).name == "x"
+
+
+def test_group_insert_index_is_shared_helper(qtbot: QtBot) -> None:
+    from easy_scsmodmanager.core.load_order import group_index_for_token
+
+    w = _grouped(qtbot, ["b_truck"])
+    trailer_idx = group_index_for_token("trailer")
+    truck_idx = group_index_for_token("truck")
+    # a trailer sorts before the existing truck -> index 0; a second truck -> end
+    assert w._group_insert_index(w.display_order(), trailer_idx) == 0
+    assert w._group_insert_index(w.display_order(), truck_idx) == 1
+
+
+def test_llbbc_buggy_order_is_misplaced(qtbot: QtBot) -> None:
+    # display [b_truck (top), a_trailer (below)] - trailer under trucks = misplaced
+    w = _grouped(qtbot, ["a_trailer", "b_truck"])
+    assert w.is_misplaced("a_trailer") is True
+
+
+def test_llbbc_activation_is_order_invariant_and_not_misplaced(qtbot: QtBot) -> None:
+    forward = _grouped(qtbot, [])
+    forward.insert_into_group_block(ActiveMod("a_trailer", "A"))
+    forward.insert_into_group_block(ActiveMod("b_truck", "B"))
+
+    backward = _grouped(qtbot, [])
+    backward.insert_into_group_block(ActiveMod("b_truck", "B"))
+    backward.insert_into_group_block(ActiveMod("a_trailer", "A"))
+
+    for w in (forward, backward):
+        assert w.is_misplaced("a_trailer") is False
+        assert w.is_misplaced("b_truck") is False
+        # trailers sort above trucks regardless of activation order
+        assert [m.name for m in w.display_order()] == ["a_trailer", "b_truck"]
 
 
 def test_insert_mods_at_display_position(qtbot: QtBot) -> None:

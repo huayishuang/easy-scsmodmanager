@@ -11,7 +11,7 @@ the wrong group get an orange left border and a tooltip.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -162,12 +162,24 @@ class ActiveModList(QWidget):
         self._rerender()
         self.order_changed.emit()
 
-    def move_to_top(self, mod: ActiveMod) -> None:
-        self._mods = [m for m in self._mods if m.name != mod.name]
-        self._mods.insert(0, mod)
+    def insert_into_group_block(self, mod: ActiveMod) -> None:
+        """Activate ``mod`` into the bottom of its own group's block.
+
+        Guard first: an already-active mod is only shown (focus), never moved -
+        no reorder, no dirty Save. Otherwise it lands at the end of its
+        effective group's block (the same token the renderer uses, so it is
+        never misplaced). Existing overrides are honoured via _primary_token; no
+        new pinning is set.
+        """
+        if any(m.name == mod.name for m in self._mods):
+            self.focus_active(mod.name)
+            return
+        target_idx = group_index_for_token(self._primary_token(mod))
+        insert_at = self._group_insert_index(self._mods, target_idx)
+        self._mods = self._mods[:insert_at] + [mod] + self._mods[insert_at:]
         self._rerender()
-        self._list.scrollToTop()
         self.order_changed.emit()
+        self.focus_active(mod.name)
 
     def insert_mods(self, mods: list[ActiveMod], at: int) -> None:
         """Insert mods at mod-display index ``at`` (0 = top of visual list)."""
@@ -225,14 +237,20 @@ class ActiveModList(QWidget):
         """
         target_idx = group_index_for_token(group_repr_token(group_id))
         remaining = [m for m in self._mods if m.name != mod.name]
-        insert_at = len(remaining)
-        for i, other in enumerate(remaining):
-            if group_index_for_token(self._primary_token(other)) > target_idx:
-                insert_at = i
-                break
+        insert_at = self._group_insert_index(remaining, target_idx)
         self._mods = remaining[:insert_at] + [mod] + remaining[insert_at:]
         self._rerender()
         self.order_changed.emit()
+
+    def _group_insert_index(self, mods: Sequence[ActiveMod], target_idx: int) -> int:
+        """First index in ``mods`` whose group sorts strictly later than
+        ``target_idx`` (so a mod inserted there lands at the bottom of its
+        block). The caller passes the list WITHOUT the mod being inserted, so
+        this never rescans self._mods - that would be an off-by-one."""
+        for i, other in enumerate(mods):
+            if group_index_for_token(self._primary_token(other)) > target_idx:
+                return i
+        return len(mods)
 
     def _on_reorder_requested(self, widget_rows: list[int], widget_target: int) -> None:
         """Translate QListWidget widget-row indices from a drag to mod-display indices."""
@@ -393,7 +411,7 @@ class ActiveModList(QWidget):
         self._count.setText(t("active_panel.count", count=len(self._mods)))
         self._empty_hint.setVisible(len(self._mods) == 0)
         self._list.setVisible(len(self._mods) > 0)
-        # keep the viewport where it was; move_to_top re-scrolls explicitly
+        # keep the viewport where it was; activation re-scrolls via focus_active
         self._list.verticalScrollBar().setValue(scroll)
 
     def is_misplaced(self, name: str) -> bool:

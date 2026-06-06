@@ -88,8 +88,10 @@ def test_save_aborts_on_cancel(qtbot, tmp_path, monkeypatch) -> None:
     assert list(read_profile(sii).active_mods) == []
 
 
-def test_double_click_grid_card_adds_mod_to_active_top(qtbot) -> None:
+def test_double_click_grid_card_inserts_into_group_block(qtbot) -> None:
     from pathlib import Path
+
+    from PyQt6.QtCore import Qt
 
     from easy_scsmodmanager.core.models.mod_manifest import ModManifest
     from easy_scsmodmanager.integrations.scs.detector import ScsFormat
@@ -108,8 +110,12 @@ def test_double_click_grid_card_adds_mod_to_active_top(qtbot) -> None:
     )
     window._on_mod_activated(mod)
 
-    assert window._active_list.display_order()[0].name == "newmod"
+    # added group-aware (same "other" block here) and selected, Save enabled
+    names = [m.name for m in window._active_list.display_order()]
+    assert "newmod" in names
     assert window._save_btn.isEnabled() is True
+    current = window._active_list._list.currentItem()
+    assert current.data(Qt.ItemDataRole.UserRole).name == "newmod"
 
 
 def test_drop_from_grid_inserts_mods_at_row(qtbot) -> None:

@@ -515,8 +515,9 @@ class MainWindow(QMainWindow):
         self._grid.set_active_names({m.name for m in self._active_list.display_order()})
 
     def _on_mod_activated(self, mod: ScannedMod) -> None:
-        # double-click in the grid puts the mod at the top of the active list
-        self._active_list.move_to_top(
+        # double-click in the grid drops the mod into its own group's block
+        # (group-aware, so it never renders under a later group's header)
+        self._active_list.insert_into_group_block(
             ActiveMod(name=active_name_for(mod), display_name=self._presenter.display_name_for(mod))
         )
 
