@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-06-06
+
+- **Delete local mods from the app.** Right-click a mod (or select several) and
+  choose "Delete..." to move it to the system trash - restore it from there if
+  you change your mind. Workshop mods stay managed by Steam (the entry is shown
+  but disabled). If a mod is still used by a saved load order, the confirmation
+  names the affected profiles first. Thanks to 00player00 for the request.
+
 ## [1.3.0] - 2026-06-06
 
 - **Self-contained dark theme.** The app now ships its own dark palette and
