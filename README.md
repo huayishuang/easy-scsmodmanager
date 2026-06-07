@@ -12,7 +12,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Games](https://img.shields.io/badge/Games-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![License](https://img.shields.io/badge/License-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-584%20passed-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-601%20passed-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![Docs](https://img.shields.io/badge/Docs-DeepWiki-E67E22?style=plastic&labelColor=000000)](https://deepwiki.com/Switch-Bros/easy-scsmodmanager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
@@ -69,8 +69,9 @@ Easy SCSModManager reads your local `mod/` folder and your Steam Workshop subscr
 - **Reads the mods the in-game browser shows** - name, icon and description straight from each mod's `manifest.sii`, so a workshop mod called `universal.scs` still shows its real name
 - **Workshop previews** - when a mod has no readable local icon, the Steam Workshop preview image fills in
 - **Search, sort and filter** - full-text search across name, author and category, sort by name or install date, filter by category, workshop-only or favourites-only
-- **Multi-select** with Ctrl / Shift to activate or deactivate whole batches at once
+- **Multi-select** with Ctrl / Shift (or Ctrl+A for everything visible) to activate, deactivate or delete whole batches at once
 - **Delete mods to the trash** - right-click (or press Del) to remove local mods, with a warning if a saved profile still uses them; Workshop mods stay managed by Steam
+- **Filter by source** - show all mods, only Workshop, or only your local ones
 
 <p align="center">
   <picture>
@@ -88,6 +89,7 @@ The in-game mod manager only lets you nudge a mod up or down one row at a time. 
 - **Reorder by dragging** - rearrange the active load order directly, with smooth auto-scroll and a clear drop indicator
 - **Grouped by load-order section** - the active list is split into load-order groups (financial, sound, trucks, trailers, maps, and so on) with clear headers, so a mod lands near the others of its kind
 - **Out-of-place markers** - a mod that sits in the wrong group is flagged, with a right-click *Move to* to pin it where it belongs
+- **Move whole selections to a group** - the *Move to* menu acts on every selected mod at once, plus an *Automatic* entry to send them back to their natural group; dragging a mod into a section keeps it there too
 - **Writes straight to `profile.sii`** - your order is saved into the profile in plain text (the format the game reads without a signature check), so ETS2/ATS starts with exactly the order you set
 
 <p align="center">

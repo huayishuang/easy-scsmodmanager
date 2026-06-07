@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.3] - 2026-06-07
+
+- **Move several mods to a group at once.** The active-list right-click "Move
+  to" now acts on your whole selection, with a new "Automatic (own category)"
+  entry that sends mods back to their natural group.
+- **Dragging adopts the target section.** Dropping a mod into a load-order
+  section now keeps it there (same as the right-click move) instead of snapping
+  back to its manifest category. Dragging a mod back to its home section clears
+  the pin.
+- **Source filter.** A new Source dropdown (All / Workshop / Local) replaces the
+  "Workshop only" checkbox, so you can show just your local mods - handy with
+  Ctrl+A in the grid to select everything visible and, say, delete it in one go.
+- **Fewer false conflicts.** Two mods that merely share the same folder
+  structure are no longer reported as conflicting.
+- Thanks to TwinShadow, 00player00 and LLBBC for the reports.
+
 ## [1.3.2] - 2026-06-06
 
 - **Activating a mod now sorts it into its own group.** Double-clicking a mod
