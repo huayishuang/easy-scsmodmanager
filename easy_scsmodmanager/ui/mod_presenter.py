@@ -28,7 +28,7 @@ from easy_scsmodmanager.services.mod_matching import (
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.services.mod_search import matches_search
 from easy_scsmodmanager.services.profile_reader import ActiveMod, Profile
-from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, SortKey
+from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, ModSource, SortKey
 from easy_scsmodmanager.utils.i18n import t
 
 
@@ -212,7 +212,10 @@ class ModPresenter:
     def filter_and_sort(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
         result: list[ScannedMod] = []
         for mod in mods:
-            if state.workshop_only and workshop_id_for_path(mod.path) is None:
+            source_id = workshop_id_for_path(mod.path)
+            if state.source is ModSource.WORKSHOP and source_id is None:
+                continue
+            if state.source is ModSource.LOCAL and source_id is not None:
                 continue
             if state.favorites_only and not self.is_favorite(mod):
                 continue

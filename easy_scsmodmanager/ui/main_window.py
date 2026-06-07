@@ -190,6 +190,9 @@ class MainWindow(QMainWindow):
         del_shortcut.activated.connect(
             lambda: self._delete.request_delete(self._grid.selected_mods())
         )
+        select_all = QShortcut(QKeySequence.StandardKey.SelectAll, self._grid)
+        select_all.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        select_all.activated.connect(self._grid.select_all)
         left_layout.addWidget(self._filter_toolbar)
         left_layout.addWidget(self._grid, 1)
 

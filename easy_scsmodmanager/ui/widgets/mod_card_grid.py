@@ -131,6 +131,16 @@ class ModCardGrid(QScrollArea):
         self._selected.clear()
         self.selection_changed.emit([])
 
+    def select_all(self) -> None:
+        # selects every card currently in the grid; the grid only ever holds the
+        # filtered list, so "all" already means "all visible"
+        self._selected = set(range(len(self._cards)))
+        for card in self._cards:
+            card.set_selected(True)
+        if self._cards:
+            self._anchor = len(self._cards) - 1
+        self.selection_changed.emit(self.selected_mods())
+
     def focus_mod(self, mod: ScannedMod) -> bool:
         """Select the card matching ``mod`` and scroll it into view.
 

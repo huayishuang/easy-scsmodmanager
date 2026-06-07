@@ -103,12 +103,40 @@ def test_favorites_only_keeps_just_favourites(tmp_path) -> None:
     assert result == [liked]
 
 
-def test_workshop_only_keeps_just_workshop_mods() -> None:
+def test_source_workshop_keeps_just_workshop_mods() -> None:
+    from easy_scsmodmanager.ui.widgets.filter_toolbar import ModSource
+
     presenter = _presenter()
     workshop = _mod("/lib/steamapps/workshop/content/227300/123/universal.scs")
     local = _mod("/games/ETS2/mod/local_mod.scs")
     presenter.set_context(matcher=None, profile=None, game_version=None, map_base_names=())
 
-    result = presenter.filter_and_sort([workshop, local], FilterState(workshop_only=True))
+    result = presenter.filter_and_sort([workshop, local], FilterState(source=ModSource.WORKSHOP))
 
     assert result == [workshop]
+
+
+def test_source_local_keeps_just_local_mods() -> None:
+    from easy_scsmodmanager.ui.widgets.filter_toolbar import ModSource
+
+    presenter = _presenter()
+    workshop = _mod("/lib/steamapps/workshop/content/227300/123/universal.scs")
+    local = _mod("/games/ETS2/mod/local_mod.scs")
+    presenter.set_context(matcher=None, profile=None, game_version=None, map_base_names=())
+
+    result = presenter.filter_and_sort([workshop, local], FilterState(source=ModSource.LOCAL))
+
+    assert result == [local]
+
+
+def test_source_all_keeps_both() -> None:
+    from easy_scsmodmanager.ui.widgets.filter_toolbar import ModSource
+
+    presenter = _presenter()
+    workshop = _mod("/lib/steamapps/workshop/content/227300/123/universal.scs")
+    local = _mod("/games/ETS2/mod/local_mod.scs")
+    presenter.set_context(matcher=None, profile=None, game_version=None, map_base_names=())
+
+    result = presenter.filter_and_sort([workshop, local], FilterState(source=ModSource.ALL))
+
+    assert set(result) == {workshop, local}

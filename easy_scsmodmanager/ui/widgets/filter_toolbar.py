@@ -30,10 +30,16 @@ class SortKey(Enum):
     STATUS = "status"
 
 
+class ModSource(Enum):
+    ALL = "all"
+    WORKSHOP = "workshop"
+    LOCAL = "local"
+
+
 @dataclass(frozen=True)
 class FilterState:
     search: str = ""
-    workshop_only: bool = False
+    source: ModSource = ModSource.ALL
     favorites_only: bool = False
     sort_key: SortKey = SortKey.NAME
     sort_descending: bool = False
@@ -65,9 +71,13 @@ class FilterToolbar(QWidget):
         self._search.textChanged.connect(self._on_search_changed)
         row.addWidget(self._search, 2)
 
-        self._workshop = QCheckBox(t("filter.workshop_only"))
-        self._workshop.toggled.connect(self._on_workshop_toggled)
-        row.addWidget(self._workshop)
+        row.addWidget(QLabel(t("filter.source")))
+        self._source = QComboBox()
+        self._source.addItem(t("filter.source.all"), ModSource.ALL)
+        self._source.addItem(t("filter.source.workshop"), ModSource.WORKSHOP)
+        self._source.addItem(t("filter.source.local"), ModSource.LOCAL)
+        self._source.currentIndexChanged.connect(self._on_source_changed)
+        row.addWidget(self._source)
 
         self._favorites = QCheckBox(t("filter.favorites_only"))
         self._favorites.toggled.connect(self._on_favorites_toggled)
@@ -111,9 +121,11 @@ class FilterToolbar(QWidget):
         self._state = self._replace(search=text)
         self._debounce.start()
 
-    def _on_workshop_toggled(self, checked: bool) -> None:
-        self._state = self._replace(workshop_only=checked)
-        self._emit_filter()
+    def _on_source_changed(self, _index: int) -> None:
+        src = self._source.currentData()
+        if src is not None:
+            self._state = self._replace(source=src)
+            self._emit_filter()
 
     def _on_favorites_toggled(self, checked: bool) -> None:
         self._state = self._replace(favorites_only=checked)

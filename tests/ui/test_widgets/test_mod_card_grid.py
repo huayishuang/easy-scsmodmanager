@@ -235,3 +235,44 @@ def test_right_click_collapses_selection_and_delete_emits_list(qtbot):
     grid.delete_requested.connect(captured.append)
     grid.cards()[1].delete_requested.emit()
     assert captured == [[mods[1]]]
+
+
+def test_select_all_selects_every_card(qtbot):
+    from pathlib import Path
+
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+    from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
+
+    mods = [
+        ScannedMod(path=Path(f"/mods/m{i}.scs"), format=ScsFormat.ZIP, manifest=None, error=None)
+        for i in range(4)
+    ]
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+    grid.set_mods(mods)
+
+    grid.select_all()
+
+    assert grid.selected_mods() == mods  # all four
+
+
+def test_select_all_only_covers_the_filtered_grid(qtbot):
+    # the grid only ever holds the filtered list, so "all" = "all visible"
+    from pathlib import Path
+
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+    from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
+
+    local = [
+        ScannedMod(path=Path("/mods/a.scs"), format=ScsFormat.ZIP, manifest=None, error=None),
+        ScannedMod(path=Path("/mods/b.scs"), format=ScsFormat.ZIP, manifest=None, error=None),
+    ]
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+    grid.set_mods(local)  # caller already filtered out workshop mods
+
+    grid.select_all()
+
+    assert [m.path.name for m in grid.selected_mods()] == ["a.scs", "b.scs"]
