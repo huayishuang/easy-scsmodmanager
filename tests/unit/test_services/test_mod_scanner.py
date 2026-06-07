@@ -274,3 +274,24 @@ def test_scan_game_install_threads_on_scan(tmp_path: Path) -> None:
     scan_game_install(install, on_scan=lambda p: ticks.append(p.name))
 
     assert ticks == ["one.scs"]
+
+
+def test_map_and_defs_drops_directory_entries() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    files = ["def/", "def/vehicle/", "def/vehicle/truck.sii", "manifest.sii"]
+    is_map, def_files = _map_and_defs(files)
+
+    assert def_files == ("def/vehicle/truck.sii",)  # folders dropped, file kept
+    assert is_map is False
+
+
+def test_map_and_defs_keeps_physics_file_for_content_category() -> None:
+    from easy_scsmodmanager.integrations.scs.content_category import content_category
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    files = ["def/", "def/vehicle/", "def/vehicle/physics/truck.sii"]
+    _, def_files = _map_and_defs(files)
+
+    # regression: filtering folders must not break physics detection
+    assert content_category(def_files) == "physics"

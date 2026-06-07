@@ -249,7 +249,12 @@ def _map_and_defs(files: list[str]) -> tuple[bool, tuple[str, ...]]:
     walked twice (Performance: this listing also feeds conflict detection).
     """
     is_map = contains_map(files)
-    def_files = tuple(p for f in files if (p := f.lstrip("/")).startswith("def/"))
+    # drop ZIP directory entries ("def/", "def/vehicle/"): two mods sharing the
+    # same folder structure would otherwise read as a conflict (forum #33). Only
+    # def_files is filtered - is_map and physics detection keep the def/ prefix.
+    def_files = tuple(
+        p for f in files if (p := f.lstrip("/")).startswith("def/") and not p.endswith("/")
+    )
     return is_map, def_files
 
 

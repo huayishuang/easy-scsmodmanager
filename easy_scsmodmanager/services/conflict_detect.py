@@ -46,6 +46,8 @@ def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModCon
     owners: dict[str, list[str]] = defaultdict(list)
     for name, defs in active.items():
         for path in set(defs):
+            if path.endswith("/"):
+                continue  # directory entry from an old cache - never a conflict
             owners[path].append(name)
 
     pair_shared: dict[tuple[str, str], set[str]] = defaultdict(set)

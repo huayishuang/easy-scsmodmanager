@@ -51,3 +51,25 @@ def test_conflict_is_symmetric():
     result = find_conflicts({"a": ["def/x.sii"], "b": ["def/x.sii"]})
     assert result["a"][0].other == "b"
     assert result["b"][0].other == "a"
+
+
+def test_shared_directory_entries_are_not_a_conflict():
+    # forum #33: two zip mods with the same folder structure but disjoint files
+    result = find_conflicts(
+        {
+            "mod_a": ["def/", "def/vehicle/", "def/vehicle/a.sii"],
+            "mod_b": ["def/", "def/vehicle/", "def/vehicle/b.sii"],
+        }
+    )
+    assert result == {}  # only the directory entries overlap
+
+
+def test_shared_directory_plus_shared_file_still_conflicts():
+    result = find_conflicts(
+        {
+            "mod_a": ["def/", "def/vehicle/", "def/vehicle/shared.sii"],
+            "mod_b": ["def/", "def/vehicle/", "def/vehicle/shared.sii"],
+        }
+    )
+    assert set(result) == {"mod_a", "mod_b"}
+    assert result["mod_a"][0].shared == ("def/vehicle/shared.sii",)
