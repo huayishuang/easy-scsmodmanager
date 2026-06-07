@@ -98,6 +98,7 @@
   "active_panel.priority_bottom": "Ans Ende",
   "active_panel.save": "Speichern",
   "active_panel.move_to_group": "Verschieben nach",
+  "active_panel.move_to_group_auto": "Automatisch (eigene Kategorie)",
   "dialog.save.title": "Aktive Mods speichern",
   "dialog.save.body": "Vor dem Speichern ein Backup des Profils anlegen?\n\nAchtung: {game} darf jetzt NICHT laufen - das Spiel überschreibt die profile.sii sonst beim Beenden.",
   "profile_header.no_profile": "(kein Profil geladen)",

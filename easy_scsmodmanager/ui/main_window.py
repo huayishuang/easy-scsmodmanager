@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from PyQt6.QtCore import QSize, Qt, QTimer, QUrl
 from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
@@ -51,6 +51,11 @@ from easy_scsmodmanager.core.game_paths import (
     install_for_overrides,
 )
 from easy_scsmodmanager.core.game_version import read_game_version
+from easy_scsmodmanager.core.load_order import (
+    GROUPS,
+    group_index_for_token,
+    group_repr_token,
+)
 from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
@@ -76,7 +81,7 @@ from easy_scsmodmanager.ui.menu.main_menu import build_menu_bar
 from easy_scsmodmanager.ui.mod_presenter import ModPresenter
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.threads.scan_thread import ScanResult, ScanThread
-from easy_scsmodmanager.ui.widgets.active_mod_list import ActiveModList
+from easy_scsmodmanager.ui.widgets.active_mod_list import MOVE_TO_GROUP_AUTO, ActiveModList
 from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, FilterToolbar
 from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
 from easy_scsmodmanager.ui.widgets.profile_header import ProfileChoice, ProfileHeader
@@ -542,12 +547,43 @@ class MainWindow(QMainWindow):
         if to_place:
             self._active_list.insert_or_move(to_place, at=row)
 
-    def _on_move_to_group(self, mod: ActiveMod, group_id: str) -> None:
-        # Pin the effective group first so the relocation sees the new group,
-        # then physically move the mod into that block (the override alone left
-        # it sitting in place, which read as "nothing happened").
-        self._group_overrides.set(mod.name, group_id)
-        self._active_list.move_mod_to_group(mod, group_id)
+    def _on_move_to_group(self, mods: object, group_id: str) -> None:
+        # payload carries the whole selection (a single right-clicked mod is
+        # collapsed to a one-item list by the widget)
+        raw = mods if isinstance(mods, list) else [mods]
+        selection: list[ActiveMod] = [cast(ActiveMod, m) for m in raw]
+        if not selection:
+            return
+        if group_id == MOVE_TO_GROUP_AUTO:
+            self._move_mods_to_natural_group(selection)
+            return
+        # pin per mod first (DB only, no rerender) so the batch move renders
+        # with the new groups, then one physical batch move = one order_changed
+        for mod in selection:
+            self._apply_group_pin(mod, group_id)
+        self._active_list.move_mods_to_group(selection, group_id)
+
+    def _apply_group_pin(self, mod: ActiveMod, group_id: str) -> None:
+        # pin only when the target differs from the mod's natural (override-free)
+        # group; targeting home clears the pin instead of freezing a stale one
+        natural = self._presenter.natural_group_token_for(mod)
+        target = group_repr_token(group_id)
+        if group_index_for_token(natural) == group_index_for_token(target):
+            self._group_overrides.clear(mod.name)
+        else:
+            self._group_overrides.set(mod.name, group_id)
+
+    def _move_mods_to_natural_group(self, mods: list[ActiveMod]) -> None:
+        # "Automatic": drop the pin and send each mod back to its home group,
+        # bucketed so each distinct group is a single rerender
+        buckets: dict[str, list[ActiveMod]] = {}
+        for mod in mods:
+            self._group_overrides.clear(mod.name)
+            natural = self._presenter.natural_group_token_for(mod)
+            gid = GROUPS[group_index_for_token(natural)].id
+            buckets.setdefault(gid, []).append(mod)
+        for gid, group_mods in buckets.items():
+            self._active_list.move_mods_to_group(group_mods, gid)
 
     def _rescan_if_possible(self) -> bool:
         """Kick off a rescan when an install is known. Returns whether it ran."""

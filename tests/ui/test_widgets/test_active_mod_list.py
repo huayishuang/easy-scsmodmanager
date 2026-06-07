@@ -220,3 +220,43 @@ def test_insert_or_move_relocates_a_block(qtbot: QtBot) -> None:
 
     assert [m.name for m in w.display_order()][:2] == ["b", "a"]
     assert len(w.display_order()) == 5  # nothing duplicated or lost
+
+
+def _rel(order: list[str], a: str, b: str) -> bool:
+    return order.index(a) < order.index(b)
+
+
+def test_move_mods_to_group_batch_one_emit_relative_order(qtbot: QtBot) -> None:
+    widget = ActiveModList()
+    qtbot.addWidget(widget)
+    cat = {"x": ("trailer",), "y": ("truck",), "z": ("trailer",)}
+    widget.set_active_mods(
+        [ActiveMod(n, n.upper()) for n in ["x", "y", "z"]],
+        category_for=lambda m: cat.get(m.name, ("other",)),
+    )
+    before = [m.name for m in widget.display_order()]
+    calls: list[int] = []
+    widget.order_changed.connect(lambda: calls.append(1))
+
+    widget.move_mods_to_group([ActiveMod("x", "X"), ActiveMod("z", "Z")], "trucks")
+
+    assert calls == [1]  # one emit for the whole batch
+    order = [m.name for m in widget.display_order()]
+    # whatever their original relative order was, it survives the batch move
+    assert _rel(order, "x", "z") == _rel(before, "x", "z")
+
+
+def test_move_mods_to_group_across_two_blocks_keeps_order(qtbot: QtBot) -> None:
+    widget = ActiveModList()
+    qtbot.addWidget(widget)
+    cat = {"a": ("trailer",), "b": ("truck",), "c": ("other",)}
+    widget.set_active_mods(
+        [ActiveMod(n, n.upper()) for n in ["a", "b", "c"]],
+        category_for=lambda m: cat.get(m.name, ("other",)),
+    )
+    before = [m.name for m in widget.display_order()]
+    # selection spans two blocks (a=trailer, c=other) -> relative order stays
+    widget.move_mods_to_group([ActiveMod("c", "C"), ActiveMod("a", "A")], "trucks")
+
+    order = [m.name for m in widget.display_order()]
+    assert _rel(order, "a", "c") == _rel(before, "a", "c")

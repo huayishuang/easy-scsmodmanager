@@ -260,3 +260,46 @@ def test_grid_click_jump_gated_by_setting(qtbot, tmp_path, monkeypatch) -> None:
     window._settings.set_grid_click_jumps_to_active(True)
     window._on_grid_selection_changed([mod])
     assert len(jumped) == 1  # opt-in on: jumps
+
+
+def test_apply_group_pin_clears_when_target_is_home(qtbot, monkeypatch) -> None:
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    monkeypatch.setattr(window._presenter, "natural_group_token_for", lambda a: "truck")
+    window._group_overrides.set("m", "trailers")  # stale pin
+
+    window._apply_group_pin(ActiveMod("m", "M"), "trucks")  # trucks == home
+
+    assert window._group_overrides.get("m") is None
+
+
+def test_apply_group_pin_sets_for_foreign_group(qtbot, monkeypatch) -> None:
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    monkeypatch.setattr(window._presenter, "natural_group_token_for", lambda a: "truck")
+
+    window._apply_group_pin(ActiveMod("m", "M"), "trailers")  # foreign
+
+    assert window._group_overrides.get("m") == "trailers"
+
+
+def test_on_move_to_group_list_batches(qtbot, monkeypatch) -> None:
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    monkeypatch.setattr(window._presenter, "natural_group_token_for", lambda a: "other")
+    moved: list = []
+    monkeypatch.setattr(
+        window._active_list, "move_mods_to_group", lambda mods, gid: moved.append((mods, gid))
+    )
+
+    window._on_move_to_group([ActiveMod("a", "A"), ActiveMod("b", "B")], "trucks")
+
+    assert len(moved) == 1
+    assert [m.name for m in moved[0][0]] == ["a", "b"]
+    assert moved[0][1] == "trucks"

@@ -41,7 +41,7 @@ from easy_scsmodmanager.ui.widgets.active_list_widgets import (
 )
 from easy_scsmodmanager.utils.i18n import t
 
-__all__ = ["ActiveModList", "MOD_DRAG_MIME"]
+__all__ = ["ActiveModList", "MOD_DRAG_MIME", "MOVE_TO_GROUP_AUTO"]
 
 # spacer rows carry their group id here so the context menu can recognise the
 # maps header (mod rows keep their ActiveMod under the default UserRole).
@@ -49,6 +49,10 @@ _SPACER_GROUP_ROLE = Qt.ItemDataRole.UserRole + 1
 
 # group id of the maps block, reused for combo export/import + block lookups
 _MAPS_GROUP_ID = "maps"
+
+# sentinel group id for the "Automatic (own category)" menu entry: clear the
+# pin and send each mod back to its natural group
+MOVE_TO_GROUP_AUTO = "__auto__"
 
 
 class ActiveModList(QWidget):
@@ -242,6 +246,24 @@ class ActiveModList(QWidget):
         self._rerender()
         self.order_changed.emit()
 
+    def move_mods_to_group(self, mods: list[ActiveMod], group_id: str) -> None:
+        """Relocate several mods to the end of ``group_id``'s block at once.
+
+        They keep their relative display order, and the whole batch is a single
+        rerender + a single order_changed - so a multi-move stays one user
+        action (no per-mod flicker, Save toggles once).
+        """
+        names = {m.name for m in mods}
+        if not names:
+            return
+        moving = [m for m in self._mods if m.name in names]  # display order
+        target_idx = group_index_for_token(group_repr_token(group_id))
+        remaining = [m for m in self._mods if m.name not in names]
+        insert_at = self._group_insert_index(remaining, target_idx)
+        self._mods = remaining[:insert_at] + moving + remaining[insert_at:]
+        self._rerender()
+        self.order_changed.emit()
+
     def _group_insert_index(self, mods: Sequence[ActiveMod], target_idx: int) -> int:
         """First index in ``mods`` whose group sorts strictly later than
         ``target_idx`` (so a mod inserted there lands at the bottom of its
@@ -279,23 +301,34 @@ class ActiveModList(QWidget):
             if item.data(_SPACER_GROUP_ROLE) == _MAPS_GROUP_ID:
                 self._show_maps_spacer_menu(pos)
             return
+        # right-click on a row outside the selection collapses onto it (same
+        # convention as the grid delete feature), so the move acts on what was
+        # clicked, not a stale selection
+        if not item.isSelected():
+            self._list.clearSelection()
+            item.setSelected(True)
+            self._list.setCurrentItem(item)
+        mods = self.selected_mods()
+
         menu = QMenu()
         submenu = menu.addMenu(t("active_panel.move_to_group"))
         if submenu is None:
             return
+        # visible way back to automatic, set off above the groups
+        auto = submenu.addAction(t("active_panel.move_to_group_auto"))
+        if auto is not None:
+            auto.triggered.connect(
+                lambda checked=False: self.move_to_group_requested.emit(mods, MOVE_TO_GROUP_AUTO)
+            )
+        submenu.addSeparator()
         for g in GROUPS:
             action = submenu.addAction(t(g.label_keys[0]))
             if action is None:
                 continue
-            group_id = g.id
-
-            def _make_handler(m: object, gid: str) -> Callable[[], None]:
-                def handler() -> None:
-                    self.move_to_group_requested.emit(m, gid)
-
-                return handler
-
-            action.triggered.connect(_make_handler(mod, group_id))
+            gid = g.id
+            action.triggered.connect(
+                lambda checked=False, gid=gid: self.move_to_group_requested.emit(mods, gid)
+            )
         viewport = self._list.viewport()
         if viewport is not None:
             menu.exec(viewport.mapToGlobal(pos))

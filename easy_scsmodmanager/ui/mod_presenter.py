@@ -133,14 +133,25 @@ class ModPresenter:
         go = self._group_overrides.get(active_mod.name)
         if go:
             return (group_repr_token(go),)
+        return (self.natural_group_token_for(active_mod),)
+
+    def natural_group_token_for(self, active_mod: ActiveMod) -> str:
+        """The mod's natural group token, ignoring any group override.
+
+        The pin rule needs the home group computed override-free; otherwise
+        dragging a pinned mod back home would compare against its own stale pin
+        and re-pin instead of clearing. Same token path the renderer uses
+        (category_for_active[0]), so the rule never disagrees with the layout.
+        """
         if is_map_base(active_mod.name, active_mod.display_name or "", self._map_base_names):
-            return ("map_base",)
+            return "map_base"
         if self._matcher is None:
-            return ("other",)
+            return "other"
         match = self._matcher.lookup(active_mod)
         if match is None:
-            return ("other",)
-        return self.effective_for(match)
+            return "other"
+        cats = self.effective_for(match)
+        return cats[0] if cats else "other"
 
     # ------------------------------------------------------------------ #
     # compatibility
