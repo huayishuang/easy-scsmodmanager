@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.6] - 2026-06-09
+
+- **Mods with the SCS 1.48 `base/` layout are now detected correctly.** A mod
+  that ships its content under a top-level `base/` folder (the DLC-aware package
+  layout the game always mounts) was previously invisible to conflict, map and
+  physics detection. Such mods are now checked just like any other. Thanks to
+  LLBBC (#43).
+
 ## [1.3.5] - 2026-06-08
 
 - **Conflict severity at a glance.** A mod whose files are overwritten by mods
