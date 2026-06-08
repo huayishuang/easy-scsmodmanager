@@ -251,9 +251,10 @@ Benötigt **Python 3.13+** (von [python.org](https://www.python.org/), unter Win
 - 🐛 **Bug gefunden?** -> [Issue öffnen](https://github.com/Switch-Bros/easy-scsmodmanager/issues)
 - 💡 **Eine Idee?** -> [Diskussion starten](https://github.com/Switch-Bros/easy-scsmodmanager/discussions)
 - 🌍 **Sprichst du eine andere Sprache?** -> [Hilf beim Übersetzen!](#-übersetzungen)
-- 🔧 **Du willst coden?** -> Lies den [Contributing-Leitfaden](CONTRIBUTING.md), forke das Repo, sieh dir die Issues an und reiche einen PR ein
+- 🔧 **Du willst coden?** -> Lies den [Contributing-Leitfaden](CONTRIBUTING_DE.md), forke das Repo, sieh dir die Issues an und reiche einen PR ein
+- 📖 **Neu hier?** -> Schau in die Doku: [Handbuch](docs/de/USER_MANUAL.md) · [FAQ](docs/de/FAQ.md) · [Tastenkürzel](docs/de/KEYBOARD_SHORTCUTS.md) · [Tipps & Tricks](docs/de/TIPS_AND_TRICKS.md) (auch unter **Hilfe -> Dokumentation** in der App)
 
-Mit deiner Teilnahme stimmst du unserem [Code of Conduct](CODE_OF_CONDUCT.md) zu.
+Mit deiner Teilnahme stimmst du unserem [Verhaltenskodex](CODE_OF_CONDUCT_DE.md) zu.
 
 
 <h2 align="center">⚖️ Rechtlicher Hinweis</h2>

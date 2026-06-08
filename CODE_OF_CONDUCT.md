@@ -1,5 +1,11 @@
 # Code of Conduct
 
+<p align="center">
+  <a href="CODE_OF_CONDUCT_DE.md">
+    <img src="https://img.shields.io/badge/🇩🇪_Auf_Deutsch_lesen-E67E22?style=for-the-badge&labelColor=000000" alt="Auf Deutsch lesen" height="35">
+  </a>
+</p>
+
 ## Our pledge
 
 We as members, contributors, and leaders pledge to make participation in our

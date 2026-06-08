@@ -1,5 +1,11 @@
 # Contributing to Easy SCSModManager
 
+<p align="center">
+  <a href="CONTRIBUTING_DE.md">
+    <img src="https://img.shields.io/badge/🇩🇪_Auf_Deutsch_lesen-E67E22?style=for-the-badge&labelColor=000000" alt="Auf Deutsch lesen" height="35">
+  </a>
+</p>
+
 Thanks for taking the time to help out. This project is a cross-platform mod
 and profile manager for Euro Truck Simulator 2 and American Truck Simulator,
 written in Python with PyQt6. Bug reports, translations, and pull requests are

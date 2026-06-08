@@ -14,12 +14,27 @@ from PyQt6.QtGui import QAction, QActionGroup
 from PyQt6.QtWidgets import QApplication
 
 from easy_scsmodmanager.core.game_paths import GAME_DIRECTORY_NAME, Game
-from easy_scsmodmanager.utils.i18n import t
+from easy_scsmodmanager.utils.i18n import current_language, t
 
 if TYPE_CHECKING:
     from easy_scsmodmanager.ui.main_window import MainWindow
 
-GITHUB_ISSUES_URL = "https://github.com/Switch-Bros/easy-scsmodmanager/issues"
+GITHUB_REPO_URL = "https://github.com/Switch-Bros/easy-scsmodmanager"
+GITHUB_ISSUES_URL = f"{GITHUB_REPO_URL}/issues"
+
+# Help -> Docs entries; opened as GitHub blob URLs (no need to ship the docs in
+# the AppImage/exe - the browser fetches the language folder from GitHub).
+_DOCS = (
+    ("manual", "USER_MANUAL.md"),
+    ("tips", "TIPS_AND_TRICKS.md"),
+    ("shortcuts", "KEYBOARD_SHORTCUTS.md"),
+    ("faq", "FAQ.md"),
+)
+
+
+def _open_doc(filename: str) -> None:
+    lang = current_language()
+    webbrowser.open(f"{GITHUB_REPO_URL}/blob/main/docs/{lang}/{filename}")
 
 
 def build_menu_bar(window: MainWindow) -> None:
@@ -60,6 +75,13 @@ def build_menu_bar(window: MainWindow) -> None:
     about = QAction(t("menu.help.about"), window)
     about.triggered.connect(window._show_about)
     help_menu.addAction(about)
+
+    docs_menu = help_menu.addMenu(t("menu.help.docs"))
+    if docs_menu is not None:
+        for key, filename in _DOCS:
+            doc_action = QAction(t(f"menu.help.docs.{key}"), window)
+            doc_action.triggered.connect(lambda _checked=False, f=filename: _open_doc(f))
+            docs_menu.addAction(doc_action)
 
     issues = QAction(t("menu.help.report_issue"), window)
     issues.triggered.connect(lambda: webbrowser.open(GITHUB_ISSUES_URL))

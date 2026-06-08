@@ -252,6 +252,7 @@ Requires **Python 3.13+** (from [python.org](https://www.python.org/), on Window
 - 💡 **Have an idea?** -> [Start a Discussion](https://github.com/Switch-Bros/easy-scsmodmanager/discussions)
 - 🌍 **Speak another language?** -> [Help translate!](#-translations)
 - 🔧 **Want to code?** -> Read the [Contributing guide](CONTRIBUTING.md), fork the repo, check the issues, and submit a PR
+- 📖 **New here?** -> Browse the docs: [User Manual](docs/en/USER_MANUAL.md) · [FAQ](docs/en/FAQ.md) · [Keyboard Shortcuts](docs/en/KEYBOARD_SHORTCUTS.md) · [Tips & Tricks](docs/en/TIPS_AND_TRICKS.md) (also under **Help -> Documentation** in the app)
 
 By taking part you agree to our [Code of Conduct](CODE_OF_CONDUCT.md).
 
