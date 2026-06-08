@@ -12,7 +12,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Games](https://img.shields.io/badge/Games-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![License](https://img.shields.io/badge/License-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-601%20passed-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-616%20passed-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![Docs](https://img.shields.io/badge/Docs-DeepWiki-E67E22?style=plastic&labelColor=000000)](https://deepwiki.com/Switch-Bros/easy-scsmodmanager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
@@ -72,6 +72,8 @@ Easy SCSModManager reads your local `mod/` folder and your Steam Workshop subscr
 - **Multi-select** with Ctrl / Shift (or Ctrl+A for everything visible) to activate, deactivate or delete whole batches at once
 - **Delete mods to the trash** - right-click (or press Del) to remove local mods, with a warning if a saved profile still uses them; Workshop mods stay managed by Steam
 - **Filter by source** - show all mods, only Workshop, or only your local ones
+- **Responsive grid** - maximise the window and the grid adds columns to fill the width instead of leaving an empty strip; the cards keep their size
+- **BVB-yellow accent** - the refined dark theme paints mod names in Borussia Dortmund yellow
 
 <p align="center">
   <picture>
@@ -120,7 +122,8 @@ Map combo authors usually pass their load order around as a screenshot or a type
 <h3 align="center">⚠️ Compatibility and Conflicts - <i>Spot Trouble Before the Game Crashes</i></h3>
 
 - **Compatibility check** - mods are checked against the detected game version exactly the way the game does it: only a mod whose `manifest.sii` actually declares an incompatible version is flagged. A mod with no version info is never wrongly marked, so the 1.58 mod you run on purpose on 1.59 is left alone
-- **Conflict hints** - when two active mods overwrite the same `def/` file, the app points it out (which mods, which file) so you can order them deliberately. It's a hint, not a block - for maps an overlap is often intentional and the load order decides the winner
+- **Conflict severity at a glance** - when two active mods overwrite the same `def/` file, the higher one wins. Each affected mod is graded: a **yellow ⚠ triangle** when it loses *some* of its files (partly overwritten), a **red ⊘ crossed circle** when it loses *all* of them (fully overwritten - it does nothing where it sits), and no mark when it wins everything. The two shapes stay distinct in greyscale, so it reads without relying on colour
+- **Full conflict tooltip + legend** - hover a flagged mod for every overwritten file and which mod wins it; a one-line legend appears under the active list while a conflict exists. It's a hint, not a block - for maps an overlap is often intentional
 - **Generic-override filtering** - files that nearly every map touches are filtered out so the real conflicts don't drown in noise
 
 <p align="center">

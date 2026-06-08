@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.5] - 2026-06-08
+
+- **Conflict severity at a glance.** A mod whose files are overwritten by mods
+  above it now shows how badly: a yellow warning triangle when it loses some
+  files (partly overwritten), a red crossed circle when it loses all of them
+  (fully overwritten - it does nothing where it sits), and no glyph when it wins
+  everything. The tooltip lists every overwritten file and which mod wins it,
+  and a small legend appears under the active list while any conflict exists.
+  Thanks to LLBBC (#37/#38).
+- **Responsive grid.** Maximising the window now fills the extra width with more
+  columns instead of an empty strip; card size stays the same. Thanks to
+  00player00 (#40).
+- **Documentation in the app.** A new Help -> Documentation menu opens the user
+  manual, FAQ, keyboard shortcuts and tips in your language, now kept under
+  `docs/`. Contributing and the Code of Conduct are available in German too.
+- Carries the refined palette from 1.3.4 (Borussia Dortmund yellow accent, mod
+  names in the club colour), which reaches everyone with this release.
+
 ## [1.3.4] - 2026-06-08
 
 - Refined the colour palette and switched the accent to Borussia Dortmund

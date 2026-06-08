@@ -12,7 +12,7 @@
 [![Plattform](https://img.shields.io/badge/Plattform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Spiele](https://img.shields.io/badge/Spiele-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-601%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-616%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![Docs](https://img.shields.io/badge/Docs-DeepWiki-E67E22?style=plastic&labelColor=000000)](https://deepwiki.com/Switch-Bros/easy-scsmodmanager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
@@ -72,6 +72,8 @@ Easy SCSModManager liest deinen lokalen `mod/`-Ordner und deine Steam-Workshop-A
 - **Mehrfachauswahl** mit Strg / Shift (oder Strg+A für alles Sichtbare), um ganze Stapel auf einmal zu aktivieren, zu deaktivieren oder zu löschen
 - **Mods in den Papierkorb löschen** - Rechtsklick (oder Entf) entfernt lokale Mods, mit Warnung falls ein gespeichertes Profil sie noch nutzt; Workshop-Mods bleiben bei Steam
 - **Nach Quelle filtern** - alle Mods, nur Workshop oder nur deine lokalen anzeigen
+- **Responsives Raster** - maximier das Fenster und das Raster fügt Spalten hinzu, statt einen leeren Streifen zu lassen; die Karten behalten ihre Größe
+- **BVB-gelber Akzent** - das verfeinerte dunkle Theme malt Modnamen in Borussia-Dortmund-Gelb
 
 <p align="center">
   <picture>
@@ -120,7 +122,8 @@ Map-Combo-Ersteller reichen ihre Ladereihenfolge meist als Screenshot oder getip
 <h3 align="center">⚠️ Kompatibilität und Konflikte - <i>Ärger sehen, bevor das Spiel abstürzt</i></h3>
 
 - **Kompatibilitäts-Prüfung** - Mods werden gegen die erkannte Spielversion geprüft, genau so wie es das Spiel macht: markiert wird nur ein Mod, dessen `manifest.sii` tatsächlich eine inkompatible Version angibt. Ein Mod ohne Versionsangabe wird nie fälschlich markiert - der 1.58-Mod, den du bewusst auf 1.59 fährst, bleibt also in Ruhe
-- **Konflikt-Hinweise** - überschreiben zwei aktive Mods dieselbe `def/`-Datei, weist die App darauf hin (welche Mods, welche Datei), damit du sie bewusst anordnest. Es ist ein Hinweis, keine Blockade - bei Maps ist eine Überschneidung oft gewollt und die Ladereihenfolge entscheidet den Sieger
+- **Konflikt-Schwere auf einen Blick** - überschreiben zwei aktive Mods dieselbe `def/`-Datei, gewinnt der höhere. Jeder betroffene Mod wird eingestuft: ein **gelbes ⚠ Dreieck**, wenn er *einige* Dateien verliert (teilweise überschrieben), ein **roter ⊘ durchgestrichener Kreis**, wenn er *alle* verliert (komplett überschrieben - er bewirkt an seiner Stelle nichts), und kein Zeichen, wenn er alles gewinnt. Die zwei Formen bleiben in Graustufen unterscheidbar, also lesbar ohne Farbe
+- **Voller Konflikt-Tooltip + Legende** - fahr über einen markierten Mod für jede überschriebene Datei samt Gewinner; eine einzeilige Legende erscheint unter der Aktiv-Liste, solange ein Konflikt existiert. Es ist ein Hinweis, keine Blockade - bei Maps ist eine Überschneidung oft gewollt
 - **Filterung generischer Overrides** - Dateien, die fast jede Map anfasst, werden ausgefiltert, damit die echten Konflikte nicht im Rauschen untergehen
 
 <p align="center">
