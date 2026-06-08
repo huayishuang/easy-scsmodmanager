@@ -295,3 +295,56 @@ def test_map_and_defs_keeps_physics_file_for_content_category() -> None:
 
     # regression: filtering folders must not break physics detection
     assert content_category(def_files) == "physics"
+
+
+def test_map_and_defs_strips_base_prefix_for_defs() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    _, def_files = _map_and_defs(["base/def/vehicle/x.sii", "manifest.sii"])
+    assert def_files == ("def/vehicle/x.sii",)  # base/ stripped, seen as def/
+
+
+def test_map_and_defs_base_map_is_detected_as_map() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    is_map, _ = _map_and_defs(["base/map/foo.mbd"])
+    assert is_map is True
+
+
+def test_map_and_defs_base_physics_classifies_as_physics() -> None:
+    from easy_scsmodmanager.integrations.scs.content_category import content_category
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    _, def_files = _map_and_defs(["base/def/vehicle/physics/p.sii"])
+    assert content_category(def_files) == "physics"
+
+
+def test_map_and_defs_segment_guard_keeps_base_underscore() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs, _strip_base_prefix
+
+    # only an exact "base" first segment is stripped, never "base_*"
+    assert _strip_base_prefix("base_vehicle/def/z.sii") == "base_vehicle/def/z.sii"
+    _, def_files = _map_and_defs(["base_vehicle/def/z.sii"])
+    assert def_files == ()  # lives under base_vehicle/, not def/ -> not a def file
+
+
+def test_map_and_defs_dedupes_root_and_base_collision() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    _, def_files = _map_and_defs(["def/a.sii", "base/def/a.sii"])
+    assert def_files == ("def/a.sii",)  # same file once, no tooltip duplicate
+
+
+def test_map_and_defs_drops_base_directory_entries() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    _, def_files = _map_and_defs(["base/", "base/def/", "def/", "base/def/x.sii"])
+    assert def_files == ("def/x.sii",)  # directory entries dropped (#33)
+
+
+def test_map_and_defs_plain_root_def_unchanged() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    is_map, def_files = _map_and_defs(["def/vehicle/truck.sii", "manifest.sii"])
+    assert def_files == ("def/vehicle/truck.sii",)
+    assert is_map is False

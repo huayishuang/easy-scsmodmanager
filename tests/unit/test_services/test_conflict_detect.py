@@ -123,3 +123,27 @@ def test_generic_paths_not_counted_in_severity():
     active = {n: ["def/generic.sii"] for n in names}
     positions = {n: i for i, n in enumerate(names)}
     assert analyze_overrides(active, positions) == {}
+
+
+def test_llbbc_43_two_base_packaged_mods_conflict():
+    # forum #43: both mods carry the same file under base/def/ - invisible before
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    _, defs_a = _map_and_defs(["base/def/vehicle/shared.sii"])
+    _, defs_b = _map_and_defs(["base/def/vehicle/shared.sii"])
+    result = find_conflicts({"mod_a": defs_a, "mod_b": defs_b})
+    assert set(result) == {"mod_a", "mod_b"}
+    assert result["mod_a"][0].shared == ("def/vehicle/shared.sii",)
+
+
+def test_base_packaged_physics_conflicts_and_classifies():
+    # covers #42 IF that mod is base/-packaged: shared physics def + physics tag
+    from easy_scsmodmanager.integrations.scs.content_category import content_category
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    listing = ["base/def/vehicle/physics/physics.sii"]
+    _, defs_a = _map_and_defs(listing)
+    _, defs_b = _map_and_defs(listing)
+    result = find_conflicts({"a": defs_a, "b": defs_b})
+    assert set(result) == {"a", "b"}
+    assert content_category(defs_a) == "physics"

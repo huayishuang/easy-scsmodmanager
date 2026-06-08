@@ -4,7 +4,9 @@ Two active mods conflict when their archives both carry the same ``def/...``
 path: whichever sits higher in the load order wins, the other's version is
 shadowed. This is a HINT, never an error - for maps an overlap is often
 intentional and the load order resolves it. We only look at ``def/`` paths
-(manifest/icon overlap is normal and ignored - those are not in def_files).
+(manifest/icon overlap is normal and ignored - those are not in def_files); the
+scanner has already normalised the 1.48 ``base/`` package layer, so a
+``base/def/...`` mod is compared as ``def/...`` here.
 
 Pure set logic over the already-cached def file lists; no archive I/O here.
 The detection uses an inverted index (def path -> owners) so it scales with

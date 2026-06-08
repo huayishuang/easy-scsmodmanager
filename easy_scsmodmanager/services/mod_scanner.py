@@ -242,19 +242,35 @@ def _scan_one(
     return result
 
 
+def _strip_base_prefix(path: str) -> str:
+    """Drop a leading ``base/`` package segment (SCS 1.48 layout).
+
+    A mod whose content lives under a top-level ``base/`` folder mounts in-game
+    as if it were at the root, so ``base/def/x`` must be seen as ``def/x``.
+    Segment match, never substring: ``base_vehicle/...`` is left untouched.
+    """
+    p = path.lstrip("/")
+    if p == "base":
+        return ""  # the bare directory entry, nothing left after stripping
+    return p[len("base/") :] if p.startswith("base/") else p
+
+
 def _map_and_defs(files: list[str]) -> tuple[bool, tuple[str, ...]]:
     """is_map flag + the ``def/`` file paths from a single listing.
 
     Reads the archive once and derives both signals so a 1-GB map is not
     walked twice (Performance: this listing also feeds conflict detection).
     """
-    is_map = contains_map(files)
-    # drop ZIP directory entries ("def/", "def/vehicle/"): two mods sharing the
-    # same folder structure would otherwise read as a conflict (forum #33). Only
-    # def_files is filtered - is_map and physics detection keep the def/ prefix.
-    def_files = tuple(
-        p for f in files if (p := f.lstrip("/")).startswith("def/") and not p.endswith("/")
-    )
+    # normalise the 1.48 base/ package layer ONCE, before both signals derive
+    # from it, so a base/-packaged mod is seen by map, physics and conflict
+    # detection. dict.fromkeys dedupes deterministically (order preserved): a mod
+    # carrying both def/a and base/def/a collapses to one def/a, which the 1.3.5
+    # per-file conflict tooltip would otherwise list twice.
+    normalized = list(dict.fromkeys(s for f in files if (s := _strip_base_prefix(f))))
+    is_map = contains_map(normalized)
+    # drop directory entries ("def/", "def/vehicle/"): two mods sharing the same
+    # folder structure would otherwise read as a conflict (forum #33).
+    def_files = tuple(p for p in normalized if p.startswith("def/") and not p.endswith("/"))
     return is_map, def_files
 
 
