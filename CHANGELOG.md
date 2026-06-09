@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.4.0] - 2026-06-09
+
+- **The extractor now unpacks textures too.** SCS archives store textures
+  (.tobj/.dds) with their pixel data GDeflate-compressed and the DDS header
+  stripped, which the extractor used to skip - base.scs lost about a fifth of
+  its files. It now ships its own GDeflate decompressor and rebuilds a real
+  .dds for every packed texture, so an extract is complete (models, defs,
+  materials and textures).
+- **Mods using the 1.48 `dlc_<name>/` layout are recognised.** Building on the
+  1.3.6 `base/` support, content under a `dlc_<name>/` folder is now read when
+  the matching game DLC is owned, so such mods (e.g. the PGRS Scania pack) are
+  checked for conflicts, maps and physics. Buying a DLC re-scans automatically.
+- **A third "frequently shared" conflict tier.** Files touched by many mods at
+  once (physics.sii, climate ...) used to be hidden; they now show as a neutral
+  grey marker with a count - informative, never an alarm - so nothing is
+  silently dropped. Resolves the physics.sii report (#42).
+- **Windows auto-update now restarts into the new version.** The update could
+  download but not swap itself in on Windows; it now hands off to the helper
+  and restarts cleanly. AppImage was unaffected.
+- Thanks to LLBBC (#42/#43/#47).
+
 ## [1.3.6] - 2026-06-09
 
 - **Mods with the SCS 1.48 `base/` layout are now detected correctly.** A mod
