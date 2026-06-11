@@ -9,9 +9,13 @@ from easy_scsmodmanager.services.mod_share import (
     ModShareVersionError,
     ShareEntry,
     ShareList,
+    build_from_profile,
+    normalize_code,
     parse,
     serialize,
+    to_active_mods,
 )
+from easy_scsmodmanager.services.profile_reader import ActiveMod, Profile
 
 
 def _share() -> ShareList:
@@ -84,3 +88,47 @@ def test_future_version_raises_distinct_error() -> None:
     )
     with pytest.raises(ModShareVersionError):
         parse(text)
+
+
+def _profile() -> Profile:
+    return Profile(
+        dir_name="abcd",
+        profile_name="Sender",
+        active_mods=(
+            ActiveMod(name="mod_workshop_package.000000003A4B7C12", display_name="ProMods"),
+            ActiveMod(name="local_mod", display_name="Local Mod"),
+        ),
+    )
+
+
+def test_build_from_profile_carries_versions_and_groups() -> None:
+    share = build_from_profile(
+        _profile(),
+        Game.ETS2,
+        versions={"local_mod": "1.2"},
+        groups={"mod_workshop_package.000000003A4B7C12": "maps"},
+    )
+    assert share.profile_name == "Sender"
+    assert share.entries[0].group == "maps"
+    assert share.entries[0].package_version == ""
+    assert share.entries[1].package_version == "1.2"
+    assert share.entries[1].group == ""
+
+
+def test_to_active_mods_preserves_order() -> None:
+    share = build_from_profile(_profile(), Game.ETS2, versions={}, groups={})
+    mods = to_active_mods(share)
+    assert [m.name for m in mods] == ["mod_workshop_package.000000003A4B7C12", "local_mod"]
+    assert mods[0].display_name == "ProMods"
+
+
+def test_to_active_mods_can_skip_missing() -> None:
+    share = build_from_profile(_profile(), Game.ETS2, versions={}, groups={})
+    mods = to_active_mods(share, skip={"local_mod"})
+    assert [m.name for m in mods] == ["mod_workshop_package.000000003A4B7C12"]
+
+
+def test_normalize_code_uppercases_and_strips() -> None:
+    assert normalize_code(" ab-cd3z ") == "ABCD3Z"
+    assert normalize_code("abcd3zXX") == "ABCD3Z"  # capped at CODE_LENGTH
+    assert normalize_code("i1o0") == ""  # lookalikes are not in the alphabet

@@ -12,9 +12,11 @@ the receiver's installed mods and emits the ActiveMod list for the writer.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from easy_scsmodmanager.core.game_paths import Game
+from easy_scsmodmanager.services.profile_reader import ActiveMod, Profile
 
 FORMAT_ID = "easy-scsmodmanager-modshare"
 FORMAT_VERSION = 1
@@ -118,3 +120,44 @@ def parse(text: str) -> ShareList:
     except json.JSONDecodeError as exc:
         raise ModShareError(f"not JSON: {exc}") from exc
     return from_payload(data)
+
+
+def build_from_profile(
+    profile: Profile,
+    game: Game,
+    *,
+    versions: Mapping[str, str],
+    groups: Mapping[str, str],
+) -> ShareList:
+    """Snapshot the profile's active list into a shareable ShareList.
+
+    versions/groups are keyed by active name; missing keys mean "unknown"
+    and end up as empty strings (optional fields in the format).
+    """
+    entries = tuple(
+        ShareEntry(
+            name=m.name,
+            display_name=m.display_name,
+            package_version=versions.get(m.name, ""),
+            group=groups.get(m.name, ""),
+        )
+        for m in profile.active_mods
+    )
+    return ShareList(game=game, profile_name=profile.profile_name, entries=entries)
+
+
+def to_active_mods(
+    share: ShareList, skip: set[str] | frozenset[str] = frozenset()
+) -> list[ActiveMod]:
+    """The writer-ready list, share order preserved, ``skip`` names dropped."""
+    return [
+        ActiveMod(name=e.name, display_name=e.display_name)
+        for e in share.entries
+        if e.name not in skip
+    ]
+
+
+def normalize_code(raw: str) -> str:
+    """Uppercase, drop everything outside the code alphabet, cap the length."""
+    cleaned = "".join(ch for ch in raw.upper() if ch in CODE_ALPHABET)
+    return cleaned[:CODE_LENGTH]
