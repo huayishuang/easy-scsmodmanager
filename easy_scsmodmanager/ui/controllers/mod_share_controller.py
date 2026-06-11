@@ -15,6 +15,7 @@ from typing import Protocol
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from easy_scsmodmanager.core.game_paths import Game
+from easy_scsmodmanager.core.load_order import GROUPS
 from easy_scsmodmanager.services.mod_share import (
     FILE_SUFFIX,
     ModShareError,
@@ -38,6 +39,11 @@ from easy_scsmodmanager.utils.i18n import t
 
 log = logging.getLogger(__name__)
 
+# Share entries carry load-order GROUP IDs (the same values the group pins /
+# category_overrides store, e.g. "trucks", "maps"). Ids from foreign or newer
+# share lists may be unknown here and must be skipped, never pinned.
+_KNOWN_GROUP_IDS = frozenset(g.id for g in GROUPS)
+
 
 class _MatcherLike(Protocol):
     def lookup(self, active: ActiveMod) -> object | None: ...
@@ -54,6 +60,8 @@ class ModShareController:
         matcher: Callable[[], _MatcherLike | None],
         local_versions: Callable[[], dict[str, str]],
         group_token_for: Callable[[ActiveMod], str],
+        # receives a group id already validated against GROUPS, so
+        # MainWindow._apply_group_pin can be wired in directly
         apply_group_pin: Callable[[ActiveMod, str], None],
         show_status: Callable[[str], None],
         request_rescan: Callable[[], bool],
@@ -71,7 +79,11 @@ class ModShareController:
         self._request_rescan = request_rescan
         self._reload_profile = reload_profile
         self._import_dialog: ShareImportDialog | None = None
+        # freshness marker: results from any other thread are stale
         self._fetch_thread: ShareFetchThread | None = None
+        # hard refs for every in-flight thread; a superseded lookup must stay
+        # alive until it finishes or Python may GC a running QThread (abort)
+        self._fetch_threads: set[ShareFetchThread] = set()
 
     # ------------------------------------------------------------------ #
     # menu entry points
@@ -115,6 +127,12 @@ class ModShareController:
     def from_profile(self) -> None:
         self._open_import("profile")
 
+    def shutdown(self, msecs: int) -> None:
+        """Wait for in-flight lookups so app close cannot destroy live threads."""
+        for thread in list(self._fetch_threads):
+            if thread.isRunning():
+                thread.wait(msecs)
+
     def on_scan_finished(self) -> None:
         """Re-diff the open import dialog after a rescan (recheck flow)."""
         dialog = self._import_dialog
@@ -153,6 +171,8 @@ class ModShareController:
         thread.failed.connect(
             lambda kind, th=thread: self._on_lookup_failed(kind, source_thread=th)
         )
+        self._fetch_threads.add(thread)
+        thread.finished.connect(lambda th=thread: self._fetch_threads.discard(th))
         self._fetch_thread = thread
         thread.start()
 
@@ -219,8 +239,8 @@ class ModShareController:
         share = dialog.current_share()
         if share is None:
             return
-        self._apply(share, include_missing=dialog.include_missing())
-        dialog.close()
+        if self._apply(share, include_missing=dialog.include_missing()):
+            dialog.close()
 
     # ------------------------------------------------------------------ #
     # core logic (unit-tested directly)
@@ -266,21 +286,27 @@ class ModShareController:
         )
         self._warn_outdated(result)
 
-    def _apply(self, share: ShareList, *, include_missing: bool) -> None:
+    def _apply(self, share: ShareList, *, include_missing: bool) -> bool:
         path = self._profile_sii_path()
         if path is None:
-            return
+            return False
         result = diff(share, installed=self._installed_map(share))
         skip = set() if include_missing else result.missing_names()
         mods = to_active_mods(share, skip=skip)
-        save_active_mods(path, mods)
+        try:
+            save_active_mods(path, mods)
+        except (OSError, ValueError) as exc:
+            log.exception("share apply failed for %s", path)
+            self._show_import_error(t("status_bar.save_failed", error=str(exc)))
+            return False
         for entry in result.found:
-            if entry.group:
+            if entry.group in _KNOWN_GROUP_IDS:
                 self._apply_group_pin(
                     ActiveMod(name=entry.name, display_name=entry.display_name), entry.group
                 )
         self._reload_profile()
         self._show_status(t("mod_share.import.applied", count=len(mods)))
+        return True
 
     def _warn_outdated(self, result: ShareDiff) -> None:
         if not result.outdated:

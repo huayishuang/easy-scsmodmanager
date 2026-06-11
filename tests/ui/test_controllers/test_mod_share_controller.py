@@ -30,6 +30,12 @@ PROFILE_TEXT = (
 )
 
 
+@pytest.fixture(autouse=True)
+def _isolated_data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep profile backups (save_active_mods) out of the real user data dir."""
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+
+
 class _Manifest:
     def __init__(self, version: str) -> None:
         self.package_version = version
@@ -139,3 +145,44 @@ def test_stale_fetch_result_is_ignored(tmp_path: Path, qtbot) -> None:
     controller._on_payload({"format": "x"}, source_thread=_StaleThread())
     # nothing presented: dialog still has no share
     assert controller._import_dialog.current_share() is None
+
+
+def test_stale_fetch_failure_is_ignored(tmp_path: Path, qtbot) -> None:
+    controller, _, _, _ = _controller(tmp_path)
+    controller._open_import("code")
+
+    class _StaleThread:
+        code = "OLDOLD"
+
+    controller._fetch_thread = None
+    controller._on_lookup_failed("connection", source_thread=_StaleThread())
+    assert controller._import_dialog._status_label.text() == ""
+
+
+def test_apply_failure_keeps_dialog_open_and_reports(tmp_path: Path, qtbot) -> None:
+    controller, profile_path, statuses, _ = _controller(tmp_path)
+    controller._open_import("code")
+    # no active_mods line -> save_active_mods raises ValueError
+    profile_path.write_text("SiiNunit\n{\n}\n", encoding="utf-8")
+    share = ShareList(game=Game.ETS2, profile_name="S", entries=(ShareEntry(name="have"),))
+    assert controller._apply(share, include_missing=True) is False
+    assert controller._import_dialog._status_label.text() != ""
+    assert statuses == []  # no success status
+
+
+def test_apply_skips_unknown_group_id(tmp_path: Path, qtbot) -> None:
+    controller, profile_path, _, pins = _controller(tmp_path)
+    share = ShareList(
+        game=Game.ETS2,
+        profile_name="Sender",
+        entries=(ShareEntry(name="have", group="hovercrafts"),),
+    )
+    assert controller._apply(share, include_missing=True) is True
+    assert pins == []  # foreign/newer group id is ignored, never pinned
+    written = read_profile(profile_path)
+    assert [m.name for m in written.active_mods] == ["have"]
+
+
+def test_shutdown_with_no_threads_is_safe(tmp_path: Path, qtbot) -> None:
+    controller, _, _, _ = _controller(tmp_path)
+    controller.shutdown(100)
