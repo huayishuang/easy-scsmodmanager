@@ -72,6 +72,7 @@ from easy_scsmodmanager.services.profile_reader import (
 from easy_scsmodmanager.services.profile_writer import save_active_mods
 from easy_scsmodmanager.ui.controllers.map_combo_controller import MapComboController
 from easy_scsmodmanager.ui.controllers.mod_delete_controller import ModDeleteController
+from easy_scsmodmanager.ui.controllers.mod_share_controller import ModShareController
 from easy_scsmodmanager.ui.controllers.profile_backup_controller import ProfileBackupController
 from easy_scsmodmanager.ui.controllers.workshop_fetch_controller import WorkshopFetchController
 from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
@@ -132,6 +133,19 @@ class MainWindow(QMainWindow):
             presenter=self._presenter,
             on_updated=self._refresh_all,
             show_status=self.statusBar().showMessage,
+        )
+        self._share_controller = ModShareController(
+            parent=self,
+            current_game=lambda: self._game,
+            current_profile=lambda: self._profile,
+            profile_sii_path=lambda: self._profile_sii_path,
+            matcher=lambda: self._matcher,
+            local_versions=self._presenter.local_versions,
+            group_token_for=self._share_group_id_for,
+            apply_group_pin=self._apply_group_pin,
+            show_status=self.statusBar().showMessage,
+            request_rescan=self._rescan_if_possible,
+            reload_profile=self._reload_profile_after_share,
         )
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
@@ -438,6 +452,7 @@ class MainWindow(QMainWindow):
         self._workshop.kickoff(self._all_mods)
         if self._combo.has_pending():
             self._combo.apply_pending()
+        self._share_controller.on_scan_finished()
 
     def _on_scan_failed(self, message: str) -> None:
         self.statusBar().showMessage(message)
@@ -595,6 +610,14 @@ class MainWindow(QMainWindow):
         else:
             self._group_overrides.set(mod.name, group_id)
 
+    def _share_group_id_for(self, mod: ActiveMod) -> str:
+        """Effective group id for the share: explicit pin first, else natural."""
+        pinned = self._group_overrides.get(mod.name)
+        if pinned:
+            return pinned
+        token = self._presenter.natural_group_token_for(mod)
+        return GROUPS[group_index_for_token(token)].id
+
     def _move_mods_to_natural_group(self, mods: list[ActiveMod]) -> None:
         # "Automatic": drop the pin and send each mod back to its home group,
         # bucketed so each distinct group is a single rerender
@@ -635,18 +658,50 @@ class MainWindow(QMainWindow):
                 self._active_list.ordered_active_mods(),
                 backup=backup,
             )
-            # reload from disk so the in-memory profile matches what we wrote
-            self._profile = read_profile(self._profile_sii_path)
+            self._reread_current_profile()
         except Exception as exc:
             log.warning("save failed for %s: %s", self._profile_sii_path, exc)
             self.statusBar().showMessage(t("status_bar.save_failed", error=str(exc)))
             return
+        self._save_btn.setEnabled(False)
+        self.statusBar().showMessage(t("status_bar.saved"))
+
+    def _reread_current_profile(self) -> None:
+        # reload from disk so the in-memory profile matches what was written
+        if self._profile_sii_path is None:
+            return
+        self._profile = read_profile(self._profile_sii_path)
         self._profile_choices = [
             (s, self._profile if s == self._profile_sii_path else p)
             for s, p in self._profile_choices
         ]
+
+    def _reload_profile_after_share(self) -> None:
+        # the share apply rewrote profile.sii behind the widget's back:
+        # re-read and re-render so the active list shows the imported order
+        try:
+            self._reread_current_profile()
+        except Exception as exc:
+            log.warning("reload after share failed for %s: %s", self._profile_sii_path, exc)
+            return
+        self._refresh_active_list()
+        self._refresh_grid()
         self._save_btn.setEnabled(False)
-        self.statusBar().showMessage(t("status_bar.saved"))
+
+    def _on_share_create_code(self) -> None:
+        self._share_controller.create_code()
+
+    def _on_share_redeem_code(self) -> None:
+        self._share_controller.redeem_code()
+
+    def _on_share_export_file(self) -> None:
+        self._share_controller.export_file()
+
+    def _on_share_import_file(self) -> None:
+        self._share_controller.import_file()
+
+    def _on_share_from_profile(self) -> None:
+        self._share_controller.from_profile()
 
     def _refresh_all(self) -> None:
         self._refresh_grid()
@@ -765,6 +820,7 @@ class MainWindow(QMainWindow):
         if self._scan_thread is not None and self._scan_thread.isRunning():
             self._scan_thread.wait(5000)
         self._workshop.shutdown(5000)
+        self._share_controller.shutdown(5000)
         self._cache.close()
         self._favorites.close()
         self._overrides.close()
