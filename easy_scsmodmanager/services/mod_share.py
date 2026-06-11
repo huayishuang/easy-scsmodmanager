@@ -166,7 +166,11 @@ def normalize_code(raw: str) -> str:
 
 @dataclass(frozen=True)
 class ShareDiff:
-    """Receiver-side view of a share: what is here, what is not."""
+    """Receiver-side view of a share: what is here, what is not.
+
+    Buckets are mutually exclusive except that entries in ``outdated``
+    also appear in ``found`` (they are installed, just stale).
+    """
 
     found: tuple[ShareEntry, ...]
     missing_workshop: tuple[tuple[ShareEntry, str], ...]  # (entry, subscribe url)

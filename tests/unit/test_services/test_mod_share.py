@@ -170,6 +170,7 @@ def test_diff_flags_outdated_local_versions() -> None:
     )
     result = diff(share, installed={"older_here": "1.0", "same_here": "1.0", "no_versions": ""})
     assert [(e.name, local) for e, local in result.outdated] == [("older_here", "1.0")]
+    assert "older_here" in [e.name for e in result.found]
 
 
 def test_diff_missing_names() -> None:
@@ -180,3 +181,5 @@ def test_diff_missing_names() -> None:
     )
     result = diff(share, installed={"a": ""})
     assert result.missing_names() == {"b"}
+    result_with_none = diff(share, installed={"a": "", "b": None})
+    assert result_with_none.missing_names() == {"b"}
