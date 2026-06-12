@@ -72,6 +72,7 @@ from easy_scsmodmanager.services.profile_reader import (
 from easy_scsmodmanager.services.profile_writer import save_active_mods
 from easy_scsmodmanager.ui.controllers.map_combo_controller import MapComboController
 from easy_scsmodmanager.ui.controllers.mod_delete_controller import ModDeleteController
+from easy_scsmodmanager.ui.controllers.mod_share_controller import ModShareController
 from easy_scsmodmanager.ui.controllers.profile_backup_controller import ProfileBackupController
 from easy_scsmodmanager.ui.controllers.workshop_fetch_controller import WorkshopFetchController
 from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
@@ -132,6 +133,19 @@ class MainWindow(QMainWindow):
             presenter=self._presenter,
             on_updated=self._refresh_all,
             show_status=self.statusBar().showMessage,
+        )
+        self._share_controller = ModShareController(
+            parent=self,
+            current_game=lambda: self._game,
+            current_profile=lambda: self._profile,
+            profile_sii_path=lambda: self._profile_sii_path,
+            matcher=lambda: self._matcher,
+            local_versions=self._presenter.local_versions,
+            group_token_for=self._share_group_id_for,
+            apply_group_pin=self._apply_group_pin,
+            show_status=self.statusBar().showMessage,
+            request_rescan=self._rescan_if_possible,
+            reload_profile=self._reload_profile_after_share,
         )
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
@@ -361,9 +375,14 @@ class MainWindow(QMainWindow):
             self._profile_header.set_profile_choices([])
             return
 
-        # Default: most recently modified profile.
-        sii_path = max(loaded, key=lambda p: p[0].stat().st_mtime)[0]
+        # Reopen the profile the user last had selected; when it is gone
+        # (deleted, renamed) fall back to the most recently modified one.
+        remembered = self._settings.get_last_selected_profile(self._game)
+        sii_path = next((s for s, _ in loaded if s == remembered), None)
+        if sii_path is None:
+            sii_path = max(loaded, key=lambda p: p[0].stat().st_mtime)[0]
         self._activate_profile(sii_path)
+        self._settings.set_last_selected_profile(self._game, sii_path)
 
     def _activate_profile(self, sii_path: Path) -> None:
         profile = next((p for s, p in self._profile_choices if s == sii_path), None)
@@ -438,6 +457,7 @@ class MainWindow(QMainWindow):
         self._workshop.kickoff(self._all_mods)
         if self._combo.has_pending():
             self._combo.apply_pending()
+        self._share_controller.on_scan_finished()
 
     def _on_scan_failed(self, message: str) -> None:
         self.statusBar().showMessage(message)
@@ -595,6 +615,14 @@ class MainWindow(QMainWindow):
         else:
             self._group_overrides.set(mod.name, group_id)
 
+    def _share_group_id_for(self, mod: ActiveMod) -> str:
+        """Effective group id for the share: explicit pin first, else natural."""
+        pinned = self._group_overrides.get(mod.name)
+        if pinned:
+            return pinned
+        token = self._presenter.natural_group_token_for(mod)
+        return GROUPS[group_index_for_token(token)].id
+
     def _move_mods_to_natural_group(self, mods: list[ActiveMod]) -> None:
         # "Automatic": drop the pin and send each mod back to its home group,
         # bucketed so each distinct group is a single rerender
@@ -635,18 +663,38 @@ class MainWindow(QMainWindow):
                 self._active_list.ordered_active_mods(),
                 backup=backup,
             )
-            # reload from disk so the in-memory profile matches what we wrote
-            self._profile = read_profile(self._profile_sii_path)
+            self._reread_current_profile()
         except Exception as exc:
             log.warning("save failed for %s: %s", self._profile_sii_path, exc)
             self.statusBar().showMessage(t("status_bar.save_failed", error=str(exc)))
             return
+        self._save_btn.setEnabled(False)
+        self.statusBar().showMessage(t("status_bar.saved"))
+
+    def _reread_current_profile(self) -> None:
+        # reload from disk so the in-memory profile matches what was written
+        if self._profile_sii_path is None:
+            return
+        self._profile = read_profile(self._profile_sii_path)
         self._profile_choices = [
             (s, self._profile if s == self._profile_sii_path else p)
             for s, p in self._profile_choices
         ]
+        # re-activate so the header meta text and the chooser entries pick up
+        # the new active-mod count instead of showing the stale one
+        self._activate_profile(self._profile_sii_path)
+
+    def _reload_profile_after_share(self) -> None:
+        # the share apply rewrote profile.sii behind the widget's back:
+        # re-read and re-render so the active list shows the imported order
+        try:
+            self._reread_current_profile()
+        except Exception as exc:
+            log.warning("reload after share failed for %s: %s", self._profile_sii_path, exc)
+            return
+        self._refresh_active_list()
+        self._refresh_grid()
         self._save_btn.setEnabled(False)
-        self.statusBar().showMessage(t("status_bar.saved"))
 
     def _refresh_all(self) -> None:
         self._refresh_grid()
@@ -689,6 +737,7 @@ class MainWindow(QMainWindow):
         if choice.sii_path == self._profile_sii_path:
             return
         self._activate_profile(choice.sii_path)
+        self._settings.set_last_selected_profile(self._game, choice.sii_path)
         self._refresh_active_list()
         self._refresh_grid()
 
@@ -765,11 +814,9 @@ class MainWindow(QMainWindow):
         if self._scan_thread is not None and self._scan_thread.isRunning():
             self._scan_thread.wait(5000)
         self._workshop.shutdown(5000)
+        self._share_controller.shutdown(5000)
         self._cache.close()
         self._favorites.close()
         self._overrides.close()
         self._group_overrides.close()
         super().closeEvent(event)
-
-
-_ = Path

@@ -71,6 +71,20 @@ def build_menu_bar(window: MainWindow) -> None:
     open_logs.triggered.connect(window._on_open_log_folder)
     tools_menu.addAction(open_logs)
 
+    share_menu = menu_bar.addMenu(t("menu.share"))
+    share = window._share_controller
+    share_actions = (
+        ("create_code", share.create_code),
+        ("redeem_code", share.redeem_code),
+        ("export_file", share.export_file),
+        ("import_file", share.import_file),
+        ("from_profile", share.from_profile),
+    )
+    for key, handler in share_actions:
+        action = QAction(t(f"menu.share.{key}"), window)
+        action.triggered.connect(handler)
+        share_menu.addAction(action)
+
     help_menu = menu_bar.addMenu(t("menu.help"))
     about = QAction(t("menu.help.about"), window)
     about.triggered.connect(window._show_about)
